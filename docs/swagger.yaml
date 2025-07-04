@@ -1,0 +1,214 @@
+basePath: /api/v1
+definitions:
+  handlers.JobRequest:
+    properties:
+      additional_packing:
+        type: boolean
+      assembly_required:
+        type: boolean
+      cargo_type:
+        type: string
+      climate_control:
+        type: boolean
+      delivery_date:
+        type: string
+      delivery_location:
+        type: string
+      delivery_time_window:
+        type: string
+      description:
+        type: string
+      early_delivery_bonus:
+        type: number
+      extra_insurance:
+        type: boolean
+      fragile_items:
+        type: boolean
+      job_title:
+        type: string
+      liftgate:
+        type: boolean
+      loading_assistance:
+        type: boolean
+      payment_terms:
+        type: string
+      payout_amount:
+        type: number
+      pickup_date:
+        type: string
+      pickup_location:
+        type: string
+      pickup_time_window:
+        type: string
+      truck_size:
+        type: string
+      urgency:
+        type: string
+      volume_cu_ft:
+        type: number
+      weight_lb:
+        type: number
+    type: object
+  handlers.JobResponse:
+    properties:
+      id:
+        type: integer
+      message:
+        type: string
+    type: object
+  handlers.SignInRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  handlers.SignInResponse:
+    properties:
+      access_token:
+        type: string
+      email:
+        type: string
+      refresh_token:
+        type: string
+      user_id:
+        type: integer
+      username:
+        type: string
+    type: object
+  handlers.SignUpRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.SignUpResponse:
+    properties:
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@moveshare.com
+    name: API Support
+  description: API for user authentication and job management in MoveShare application
+  license:
+    name: MIT
+  termsOfService: http://swagger.io/terms/
+  title: MoveShare API
+  version: "1.0"
+paths:
+  /jobs:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new job posting
+      parameters:
+      - description: Job creation data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.JobRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.JobResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new job
+      tags:
+      - jobs
+  /sign-in:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns user details with access and refresh
+        tokens
+      parameters:
+      - description: User login data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SignInRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.SignInResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login a user
+      tags:
+      - auth
+  /sign-up:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account
+      parameters:
+      - description: User registration data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SignUpRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.SignUpResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - auth
+swagger: "2.0"
