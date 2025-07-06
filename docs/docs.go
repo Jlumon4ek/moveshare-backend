@@ -22,6 +22,103 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/company": {
+            "get": {
+                "description": "Fetches company data for the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "company"
+                ],
+                "summary": "Get company data",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CompanyResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Partially updates company data for the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "company"
+                ],
+                "summary": "Update company data",
+                "parameters": [
+                    {
+                        "description": "Company update data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CompanyUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CompanyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/jobs": {
             "post": {
                 "description": "Creates a new job posting",
@@ -55,6 +152,312 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/applications/my": {
+            "get": {
+                "description": "Fetches all applications submitted by the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Get my applications",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.MyJobsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/available": {
+            "get": {
+                "description": "Fetches jobs not created by the current user with optional filters and pagination",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Get available jobs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Pickup location filter",
+                        "name": "pickup_location",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Delivery location filter",
+                        "name": "delivery_location",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date for pickup (YYYY-MM-DD)",
+                        "name": "pickup_date_start",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date for pickup (YYYY-MM-DD)",
+                        "name": "pickup_date_end",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Truck size filter",
+                        "name": "truck_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of results per page (default: 10)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset for pagination (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AvailableJobsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/my": {
+            "get": {
+                "description": "Fetches all jobs created by the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Get user jobs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.MyJobsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/{id}": {
+            "delete": {
+                "description": "Deletes a job created by the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Delete a job",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/{id}/apply": {
+            "post": {
+                "description": "Allows a user to apply for a job",
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Apply for a job",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ApplicationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -186,9 +589,478 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/trucks": {
+            "get": {
+                "description": "Fetches all trucks owned by the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trucks"
+                ],
+                "summary": "Get user trucks",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.TrucksResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new truck with optional photo uploads",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trucks"
+                ],
+                "summary": "Create a new truck",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Truck name",
+                        "name": "truck_name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "License plate",
+                        "name": "license_plate",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Make",
+                        "name": "make",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Model",
+                        "name": "model",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Color",
+                        "name": "color",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Length",
+                        "name": "length",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Width",
+                        "name": "width",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Height",
+                        "name": "height",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Max weight",
+                        "name": "max_weight",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Truck type (Small, Medium, Large)",
+                        "name": "truck_type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Climate control",
+                        "name": "climate_control",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Liftgate",
+                        "name": "liftgate",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Pallet jack",
+                        "name": "pallet_jack",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Security system",
+                        "name": "security_system",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Refrigerated",
+                        "name": "refrigerated",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Furniture pads",
+                        "name": "furniture_pads",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Photo files",
+                        "name": "photos",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.TruckResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/trucks/{id}": {
+            "get": {
+                "description": "Fetches a specific truck by ID owned by the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trucks"
+                ],
+                "summary": "Get truck by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Truck ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.TruckResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates an existing truck owned by the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trucks"
+                ],
+                "summary": "Update a truck",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Truck ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Truck update data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.TruckRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.TruckResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a truck owned by the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trucks"
+                ],
+                "summary": "Delete a truck",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Truck ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "handlers.ApplicationResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.AvailableJobsResponse": {
+            "type": "object",
+            "properties": {
+                "jobs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/repository.Job"
+                    }
+                }
+            }
+        },
+        "handlers.CompanyResponse": {
+            "type": "object",
+            "properties": {
+                "company": {
+                    "$ref": "#/definitions/repository.Company"
+                }
+            }
+        },
+        "handlers.CompanyUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "company_description": {
+                    "type": "string"
+                },
+                "company_name": {
+                    "type": "string"
+                },
+                "contact_person": {
+                    "type": "string"
+                },
+                "dot_number": {
+                    "type": "string"
+                },
+                "email_address": {
+                    "type": "string"
+                },
+                "mc_license_number": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "zip_code": {
+                    "type": "string"
+                }
+            }
+        },
         "handlers.JobRequest": {
             "type": "object",
             "properties": {
@@ -274,6 +1146,17 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.MyJobsResponse": {
+            "type": "object",
+            "properties": {
+                "jobs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/repository.Job"
+                    }
+                }
+            }
+        },
         "handlers.SignInRequest": {
             "type": "object",
             "properties": {
@@ -326,6 +1209,305 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "handlers.TruckRequest": {
+            "type": "object",
+            "properties": {
+                "climate_control": {
+                    "type": "boolean"
+                },
+                "color": {
+                    "type": "string"
+                },
+                "furniture_pads": {
+                    "type": "boolean"
+                },
+                "height": {
+                    "type": "number"
+                },
+                "length": {
+                    "type": "number"
+                },
+                "license_plate": {
+                    "type": "string"
+                },
+                "liftgate": {
+                    "type": "boolean"
+                },
+                "make": {
+                    "type": "string"
+                },
+                "max_weight": {
+                    "type": "number"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "pallet_jack": {
+                    "type": "boolean"
+                },
+                "refrigerated": {
+                    "type": "boolean"
+                },
+                "security_system": {
+                    "type": "boolean"
+                },
+                "truck_name": {
+                    "type": "string"
+                },
+                "truck_type": {
+                    "type": "string"
+                },
+                "width": {
+                    "type": "number"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.TruckResponse": {
+            "type": "object",
+            "properties": {
+                "truck": {
+                    "$ref": "#/definitions/repository.Truck"
+                }
+            }
+        },
+        "handlers.TrucksResponse": {
+            "type": "object",
+            "properties": {
+                "trucks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/repository.Truck"
+                    }
+                }
+            }
+        },
+        "repository.Company": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "company_description": {
+                    "type": "string"
+                },
+                "company_name": {
+                    "type": "string"
+                },
+                "contact_person": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "dot_number": {
+                    "type": "string"
+                },
+                "email_address": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "mc_license_number": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "zip_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "repository.Job": {
+            "type": "object",
+            "properties": {
+                "additional_packing": {
+                    "type": "boolean"
+                },
+                "assembly_required": {
+                    "type": "boolean"
+                },
+                "cargo_type": {
+                    "type": "string"
+                },
+                "climate_control": {
+                    "type": "boolean"
+                },
+                "delivery_date": {
+                    "type": "string"
+                },
+                "delivery_location": {
+                    "type": "string"
+                },
+                "delivery_time_window": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "early_delivery_bonus": {
+                    "type": "number"
+                },
+                "extra_insurance": {
+                    "type": "boolean"
+                },
+                "fragile_items": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "job_title": {
+                    "type": "string"
+                },
+                "liftgate": {
+                    "type": "boolean"
+                },
+                "loading_assistance": {
+                    "type": "boolean"
+                },
+                "payment_terms": {
+                    "type": "string"
+                },
+                "payout_amount": {
+                    "type": "number"
+                },
+                "pickup_date": {
+                    "type": "string"
+                },
+                "pickup_location": {
+                    "type": "string"
+                },
+                "pickup_time_window": {
+                    "type": "string"
+                },
+                "truck_size": {
+                    "type": "string"
+                },
+                "urgency": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "volume_cu_ft": {
+                    "type": "number"
+                },
+                "weight_lb": {
+                    "type": "number"
+                }
+            }
+        },
+        "repository.Truck": {
+            "type": "object",
+            "properties": {
+                "climate_control": {
+                    "type": "boolean"
+                },
+                "color": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "furniture_pads": {
+                    "type": "boolean"
+                },
+                "height": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "length": {
+                    "type": "number"
+                },
+                "license_plate": {
+                    "type": "string"
+                },
+                "liftgate": {
+                    "type": "boolean"
+                },
+                "make": {
+                    "type": "string"
+                },
+                "max_weight": {
+                    "type": "number"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "pallet_jack": {
+                    "type": "boolean"
+                },
+                "photos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/repository.TruckPhoto"
+                    }
+                },
+                "refrigerated": {
+                    "type": "boolean"
+                },
+                "security_system": {
+                    "type": "boolean"
+                },
+                "truck_name": {
+                    "type": "string"
+                },
+                "truck_type": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "width": {
+                    "type": "number"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "repository.TruckPhoto": {
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "type": "string"
+                },
+                "file_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "truck_id": {
+                    "type": "integer"
+                },
+                "uploaded_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
         }
     }
 }`
@@ -337,7 +1519,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "MoveShare API",
-	Description:      "API for user authentication and job management in MoveShare application",
+	Description:      "API for user authentication, job management, and truck management in MoveShare application",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

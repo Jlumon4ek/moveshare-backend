@@ -22,7 +22,7 @@ import (
 
 // @title MoveShare API
 // @version 1.0
-// @description API for user authentication and job management in MoveShare application
+// @description API for user authentication, job management, and truck management in MoveShare application
 // @termsOfService http://swagger.io/terms/
 // @contact.name API Support
 // @contact.email support@moveshare.com
@@ -52,16 +52,23 @@ func main() {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	jobRepo := repository.NewJobRepository(db)
-	companyRepo := repository.NewCompanyRepository(db) // New repository
+	companyRepo := repository.NewCompanyRepository(db)
+	truckRepo := repository.NewTruckRepository(db)
+	
 	// Initialize services
 	userService := service.NewUserService(userRepo, jwtAuth)
 	jobService := service.NewJobService(jobRepo)
-	companyService := service.NewCompanyService(companyRepo) // New service
+	companyService := service.NewCompanyService(companyRepo)
+	truckService, err := service.NewTruckService(truckRepo, cfg)
+	if err != nil {
+		log.Fatalf("failed to initialize truck service: %v", err)
+	}
 
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userService)
 	jobHandler := handlers.NewJobHandler(jobService)
-	companyHandler := handlers.NewCompanyHandler(companyService) // New handler
+	companyHandler := handlers.NewCompanyHandler(companyService)
+	truckHandler := handlers.NewTruckHandler(truckService)
 	// Setup router
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -84,6 +91,13 @@ func main() {
 			r.Get("/jobs/applications/my", jobHandler.GetMyApplications)
 			r.Get("/company", companyHandler.GetCompany)
 			r.Patch("/company", companyHandler.PatchCompany)
+			
+			// Truck routes
+			r.Get("/trucks", truckHandler.GetUserTrucks)
+			r.Post("/trucks", truckHandler.CreateTruck)
+			r.Get("/trucks/{id}", truckHandler.GetTruckByID)
+			r.Put("/trucks/{id}", truckHandler.UpdateTruck)
+			r.Delete("/trucks/{id}", truckHandler.DeleteTruck)
 		})
 	})
 
