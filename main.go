@@ -52,16 +52,20 @@ func main() {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	jobRepo := repository.NewJobRepository(db)
-	companyRepo := repository.NewCompanyRepository(db) // New repository
+	companyRepo := repository.NewCompanyRepository(db)
+	truckRepo := repository.NewTruckRepository(db)
+	
 	// Initialize services
 	userService := service.NewUserService(userRepo, jwtAuth)
 	jobService := service.NewJobService(jobRepo)
-	companyService := service.NewCompanyService(companyRepo) // New service
+	companyService := service.NewCompanyService(companyRepo)
+	truckService := service.NewTruckService(truckRepo)
 
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userService)
 	jobHandler := handlers.NewJobHandler(jobService)
-	companyHandler := handlers.NewCompanyHandler(companyService) // New handler
+	companyHandler := handlers.NewCompanyHandler(companyService)
+	truckHandler := handlers.NewTruckHandler(truckService)
 	// Setup router
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -84,6 +88,13 @@ func main() {
 			r.Get("/jobs/applications/my", jobHandler.GetMyApplications)
 			r.Get("/company", companyHandler.GetCompany)
 			r.Patch("/company", companyHandler.PatchCompany)
+			
+			// Truck routes
+			r.Get("/trucks/my", truckHandler.GetUserTrucks)
+			r.Post("/trucks", truckHandler.CreateTruck)
+			r.Delete("/trucks/{id}", truckHandler.DeleteTruck)
+			r.Post("/trucks/{id}/photos", truckHandler.UploadTruckPhoto)
+			r.Get("/trucks/{id}/photos", truckHandler.GetTruckPhotos)
 		})
 	})
 
