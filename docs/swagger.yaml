@@ -1,5 +1,47 @@
 basePath: /api/v1
 definitions:
+  handlers.ApplicationResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handlers.AvailableJobsResponse:
+    properties:
+      jobs:
+        items:
+          $ref: '#/definitions/repository.Job'
+        type: array
+    type: object
+  handlers.CompanyResponse:
+    properties:
+      company:
+        $ref: '#/definitions/repository.Company'
+    type: object
+  handlers.CompanyUpdateRequest:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      company_description:
+        type: string
+      company_name:
+        type: string
+      contact_person:
+        type: string
+      dot_number:
+        type: string
+      email_address:
+        type: string
+      mc_license_number:
+        type: string
+      phone_number:
+        type: string
+      state:
+        type: string
+      zip_code:
+        type: string
+    type: object
   handlers.JobRequest:
     properties:
       additional_packing:
@@ -56,6 +98,29 @@ definitions:
       message:
         type: string
     type: object
+  handlers.MyJobsResponse:
+    properties:
+      jobs:
+        items:
+          $ref: '#/definitions/repository.Job'
+        type: array
+    type: object
+  handlers.PhotoUploadResponse:
+    properties:
+      message:
+        type: string
+      photos:
+        items:
+          $ref: '#/definitions/repository.TruckPhoto'
+        type: array
+    type: object
+  handlers.PhotosResponse:
+    properties:
+      photos:
+        items:
+          $ref: '#/definitions/repository.TruckPhoto'
+        type: array
+    type: object
   handlers.SignInRequest:
     properties:
       email:
@@ -90,6 +155,209 @@ definitions:
       message:
         type: string
     type: object
+  handlers.TruckRequest:
+    properties:
+      climate_control:
+        type: boolean
+      color:
+        type: string
+      furniture_pads:
+        type: boolean
+      height:
+        type: number
+      length:
+        type: number
+      license_plate:
+        type: string
+      liftgate:
+        type: boolean
+      make:
+        type: string
+      max_weight:
+        type: number
+      model:
+        type: string
+      pallet_jack:
+        type: boolean
+      refrigerated:
+        type: boolean
+      security_system:
+        type: boolean
+      truck_name:
+        type: string
+      truck_type:
+        $ref: '#/definitions/repository.TruckType'
+      width:
+        type: number
+      year:
+        type: integer
+    type: object
+  handlers.TruckResponse:
+    properties:
+      truck:
+        $ref: '#/definitions/repository.Truck'
+    type: object
+  handlers.TrucksResponse:
+    properties:
+      trucks:
+        items:
+          $ref: '#/definitions/repository.Truck'
+        type: array
+    type: object
+  repository.Company:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      company_description:
+        type: string
+      company_name:
+        type: string
+      contact_person:
+        type: string
+      created_at:
+        type: string
+      dot_number:
+        type: string
+      email_address:
+        type: string
+      id:
+        type: integer
+      mc_license_number:
+        type: string
+      phone_number:
+        type: string
+      state:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      zip_code:
+        type: string
+    type: object
+  repository.Job:
+    properties:
+      additional_packing:
+        type: boolean
+      assembly_required:
+        type: boolean
+      cargo_type:
+        type: string
+      climate_control:
+        type: boolean
+      delivery_date:
+        type: string
+      delivery_location:
+        type: string
+      delivery_time_window:
+        type: string
+      description:
+        type: string
+      early_delivery_bonus:
+        type: number
+      extra_insurance:
+        type: boolean
+      fragile_items:
+        type: boolean
+      id:
+        type: integer
+      job_title:
+        type: string
+      liftgate:
+        type: boolean
+      loading_assistance:
+        type: boolean
+      payment_terms:
+        type: string
+      payout_amount:
+        type: number
+      pickup_date:
+        type: string
+      pickup_location:
+        type: string
+      pickup_time_window:
+        type: string
+      truck_size:
+        type: string
+      urgency:
+        type: string
+      user_id:
+        type: integer
+      volume_cu_ft:
+        type: number
+      weight_lb:
+        type: number
+    type: object
+  repository.Truck:
+    properties:
+      climate_control:
+        type: boolean
+      color:
+        type: string
+      created_at:
+        type: string
+      furniture_pads:
+        type: boolean
+      height:
+        type: number
+      id:
+        type: integer
+      length:
+        type: number
+      license_plate:
+        type: string
+      liftgate:
+        type: boolean
+      make:
+        type: string
+      max_weight:
+        type: number
+      model:
+        type: string
+      pallet_jack:
+        type: boolean
+      refrigerated:
+        type: boolean
+      security_system:
+        type: boolean
+      truck_name:
+        type: string
+      truck_type:
+        $ref: '#/definitions/repository.TruckType'
+      user_id:
+        type: integer
+      width:
+        type: number
+      year:
+        type: integer
+    type: object
+  repository.TruckPhoto:
+    properties:
+      file_name:
+        type: string
+      file_url:
+        type: string
+      id:
+        type: integer
+      truck_id:
+        type: integer
+      uploaded_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  repository.TruckType:
+    enum:
+    - Small
+    - Medium
+    - Large
+    type: string
+    x-enum-varnames:
+    - TruckTypeSmall
+    - TruckTypeMedium
+    - TruckTypeLarge
 host: localhost:8080
 info:
   contact:
@@ -102,6 +370,70 @@ info:
   title: MoveShare API
   version: "1.0"
 paths:
+  /company:
+    get:
+      description: Fetches company data for the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.CompanyResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get company data
+      tags:
+      - company
+    patch:
+      consumes:
+      - application/json
+      description: Partially updates company data for the current user
+      parameters:
+      - description: Company update data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CompanyUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.CompanyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update company data
+      tags:
+      - company
   /jobs:
     post:
       consumes:
@@ -127,6 +459,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -134,6 +472,203 @@ paths:
               type: string
             type: object
       summary: Create a new job
+      tags:
+      - jobs
+  /jobs/{id}:
+    delete:
+      description: Deletes a job created by the current user
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a job
+      tags:
+      - jobs
+  /jobs/{id}/apply:
+    post:
+      description: Allows a user to apply for a job
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.ApplicationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Apply for a job
+      tags:
+      - jobs
+  /jobs/applications/my:
+    get:
+      description: Fetches all applications submitted by the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MyJobsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get my applications
+      tags:
+      - jobs
+  /jobs/available:
+    get:
+      description: Fetches jobs not created by the current user with optional filters
+        and pagination
+      parameters:
+      - description: Pickup location filter
+        in: query
+        name: pickup_location
+        type: string
+      - description: Delivery location filter
+        in: query
+        name: delivery_location
+        type: string
+      - description: Start date for pickup (YYYY-MM-DD)
+        in: query
+        name: pickup_date_start
+        type: string
+      - description: End date for pickup (YYYY-MM-DD)
+        in: query
+        name: pickup_date_end
+        type: string
+      - description: Truck size filter
+        in: query
+        name: truck_size
+        type: string
+      - description: 'Number of results per page (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset for pagination (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.AvailableJobsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get available jobs
+      tags:
+      - jobs
+  /jobs/my:
+    get:
+      description: Fetches all jobs created by the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MyJobsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user jobs
       tags:
       - jobs
   /sign-in:
@@ -211,4 +746,324 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /trucks:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new truck for the current user
+      parameters:
+      - description: Truck data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.TruckRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.TruckResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new truck
+      tags:
+      - trucks
+  /trucks/{id}:
+    delete:
+      description: Deletes a truck for the current user
+      parameters:
+      - description: Truck ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete truck
+      tags:
+      - trucks
+    get:
+      description: Fetches a specific truck by ID for the current user
+      parameters:
+      - description: Truck ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TruckResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get truck by ID
+      tags:
+      - trucks
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing truck for the current user
+      parameters:
+      - description: Truck ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Truck data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.TruckRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TruckResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update truck
+      tags:
+      - trucks
+  /trucks/{id}/photos:
+    get:
+      description: Fetches all photos for a specific truck
+      parameters:
+      - description: Truck ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.PhotosResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get truck photos
+      tags:
+      - trucks
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads one or more photos for a specific truck
+      parameters:
+      - description: Truck ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Photo files
+        in: formData
+        name: photos
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.PhotoUploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Upload truck photos
+      tags:
+      - trucks
+  /trucks/{id}/photos/{photoId}:
+    delete:
+      description: Deletes a specific photo for a truck
+      parameters:
+      - description: Truck ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Photo ID
+        in: path
+        name: photoId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete truck photo
+      tags:
+      - trucks
+  /trucks/my:
+    get:
+      description: Fetches all trucks belonging to the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TrucksResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user's trucks
+      tags:
+      - trucks
 swagger: "2.0"
