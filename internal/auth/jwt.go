@@ -10,14 +10,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// JWTAuth defines the interface for JWT operations
 type JWTAuth interface {
 	GenerateAccessToken(userID int64, username, email string) (string, error)
 	GenerateRefreshToken(userID int64) (string, error)
 	ValidateToken(tokenString string) (int64, error)
 }
 
-// jwtAuth implements JWTAuth
 type jwtAuth struct {
 	privateKey *rsa.PrivateKey
 	publicKey  *rsa.PublicKey

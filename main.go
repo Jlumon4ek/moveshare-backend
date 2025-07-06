@@ -18,11 +18,14 @@ import (
 	"moveshare/internal/handlers"
 	"moveshare/internal/repository"
 	"moveshare/internal/service"
+
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 // @title MoveShare API
 // @version 1.0
-// @description API for user authentication and job management in MoveShare application
+// @description API for user authentication, job management, and truck management in MoveShare application
 // @termsOfService http://swagger.io/terms/
 // @contact.name API Support
 // @contact.email support@moveshare.com
@@ -49,23 +52,53 @@ func main() {
 		log.Fatalf("failed to initialize JWT auth: %v", err)
 	}
 
+	minioCfg := config.LoadMinioConfig()
+	minioClient, err := minio.New(minioCfg.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(minioCfg.AccessKey, minioCfg.SecretKey, ""),
+		Secure: minioCfg.UseSSL,
+	})
+	if err != nil {
+		log.Fatalf("failed to init minio: %v", err)
+	}
+
+	// Создайте bucket, если его нет
+	ctx := context.Background()
+	exists, err := minioClient.BucketExists(ctx, minioCfg.Bucket)
+	if err != nil {
+		log.Fatalf("failed to check minio bucket: %v", err)
+	}
+	if !exists {
+		err = minioClient.MakeBucket(ctx, minioCfg.Bucket, minio.MakeBucketOptions{})
+		if err != nil {
+			log.Fatalf("failed to create minio bucket: %v", err)
+		}
+	}
+
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	jobRepo := repository.NewJobRepository(db)
-	companyRepo := repository.NewCompanyRepository(db) // New repository
+	companyRepo := repository.NewCompanyRepository(db)
+	truckRepo := repository.NewTruckRepository(db) // New repository
+
 	// Initialize services
 	userService := service.NewUserService(userRepo, jwtAuth)
 	jobService := service.NewJobService(jobRepo)
-	companyService := service.NewCompanyService(companyRepo) // New service
+	companyService := service.NewCompanyService(companyRepo)
+	truckService := service.NewTruckService(truckRepo) // New service
 
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userService)
 	jobHandler := handlers.NewJobHandler(jobService)
-	companyHandler := handlers.NewCompanyHandler(companyService) // New handler
+	companyHandler := handlers.NewCompanyHandler(companyService)
+	truckHandler := handlers.NewTruckHandler(truckService, minioClient, minioCfg.Bucket)
+
 	// Setup router
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	// Serve static files for uploaded photos
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads/"))))
 
 	// API routes under /api/v1
 	r.Route("/api/v1", func(r chi.Router) {
@@ -76,14 +109,25 @@ func main() {
 		// Protected routes
 		r.Group(func(r chi.Router) {
 			r.Use(handlers.AuthMiddleware(jwtAuth))
+
+			// Job routes
 			r.Post("/jobs", jobHandler.CreateJob)
 			r.Get("/jobs/available", jobHandler.GetAvailableJobs)
 			r.Get("/jobs/my", jobHandler.GetUserJobs)
 			r.Delete("/jobs/{id}", jobHandler.DeleteJob)
 			r.Post("/jobs/{id}/apply", jobHandler.ApplyForJob)
 			r.Get("/jobs/applications/my", jobHandler.GetMyApplications)
+
+			// Company routes
 			r.Get("/company", companyHandler.GetCompany)
 			r.Patch("/company", companyHandler.PatchCompany)
+
+			// Truck routes
+			r.Post("/trucks", truckHandler.CreateTruck)
+			r.Get("/trucks", truckHandler.GetUserTrucks)
+			r.Get("/trucks/{id}", truckHandler.GetTruckByID)
+			r.Put("/trucks/{id}", truckHandler.UpdateTruck)
+			r.Delete("/trucks/{id}", truckHandler.DeleteTruck)
 		})
 	})
 

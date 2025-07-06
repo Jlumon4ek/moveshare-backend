@@ -63,34 +63,34 @@ CREATE TABLE IF NOT EXISTS companies (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+
 CREATE TABLE IF NOT EXISTS trucks (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES users(id),
-    truck_name VARCHAR(100) NOT NULL,
-    license_plate VARCHAR(20) NOT NULL,
-    make VARCHAR(50),
-    model VARCHAR(50),
-    year INT,
-    color VARCHAR(30),
-    length DECIMAL(10, 2),
-    width DECIMAL(10, 2),
-    height DECIMAL(10, 2),
-    max_weight DECIMAL(10, 2),
-    truck_type VARCHAR(20),
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    truck_name VARCHAR(255) NOT NULL,
+    license_plate VARCHAR(50) NOT NULL,
+    make VARCHAR(100) NOT NULL,
+    model VARCHAR(100) NOT NULL,
+    year INTEGER NOT NULL,
+    color VARCHAR(50),
+    length DECIMAL(10,2),
+    width DECIMAL(10,2),
+    height DECIMAL(10,2),
+    max_weight DECIMAL(10,2),
+    truck_type VARCHAR(20) NOT NULL CHECK (truck_type IN ('Small', 'Medium', 'Large')),
     climate_control BOOLEAN DEFAULT FALSE,
     liftgate BOOLEAN DEFAULT FALSE,
     pallet_jack BOOLEAN DEFAULT FALSE,
     security_system BOOLEAN DEFAULT FALSE,
     refrigerated BOOLEAN DEFAULT FALSE,
     furniture_pads BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    photos TEXT[], -- Array of photo URLs/paths
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT unique_license_plate UNIQUE (license_plate)
 );
 
-CREATE TABLE IF NOT EXISTS truck_photos (
-    id BIGSERIAL PRIMARY KEY,
-    truck_id BIGINT REFERENCES trucks(id) ON DELETE CASCADE,
-    user_id BIGINT REFERENCES users(id),
-    file_name VARCHAR(255) NOT NULL,
-    file_url VARCHAR(255) NOT NULL,
-    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- Create index for faster queries
+CREATE INDEX idx_trucks_user_id ON trucks(user_id);
+CREATE INDEX idx_trucks_truck_type ON trucks(truck_type);
