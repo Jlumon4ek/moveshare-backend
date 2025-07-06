@@ -29,5 +29,19 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
 
+  minio:
+    container_name: movingshare-minio
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    # volumes:
+    #   - minio_data:/data
+    command: server /data --console-address ":9001"
+
+
 volumes:
   db-data:
