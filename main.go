@@ -53,18 +53,15 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	jobRepo := repository.NewJobRepository(db)
 	companyRepo := repository.NewCompanyRepository(db) // New repository
-	truckRepo := repository.NewTruckRepository(db)
 	// Initialize services
 	userService := service.NewUserService(userRepo, jwtAuth)
 	jobService := service.NewJobService(jobRepo)
 	companyService := service.NewCompanyService(companyRepo) // New service
-	truckService := service.NewTruckService(truckRepo)       // New service
 
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userService)
 	jobHandler := handlers.NewJobHandler(jobService)
 	companyHandler := handlers.NewCompanyHandler(companyService) // New handler
-	truckHandler := handlers.NewTruckHandler(truckService)       // New handler
 	// Setup router
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -87,8 +84,6 @@ func main() {
 			r.Get("/jobs/applications/my", jobHandler.GetMyApplications)
 			r.Get("/company", companyHandler.GetCompany)
 			r.Patch("/company", companyHandler.PatchCompany)
-			r.Get("/trucks", truckHandler.GetUserTrucks)
-			r.Post("/trucks", truckHandler.CreateTruck)
 		})
 	})
 

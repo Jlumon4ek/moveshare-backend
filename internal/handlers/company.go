@@ -2,10 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
-	"net/http"
-
 	"moveshare/internal/repository"
 	"moveshare/internal/service"
+	"net/http"
 )
 
 // CompanyHandler handles HTTP requests for company operations
