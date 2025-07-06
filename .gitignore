@@ -1,0 +1,25 @@
+# Binaries
+main
+moveshare
+
+# Environment files
+.env
+.env.local
+
+# Uploads directory
+uploads/
+
+# Go modules
+vendor/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+*.test
+coverage.out
