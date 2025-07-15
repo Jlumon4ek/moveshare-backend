@@ -81,18 +81,27 @@ func main() {
 	jobRepo := repository.NewJobRepository(db)
 	companyRepo := repository.NewCompanyRepository(db)
 	truckRepo := repository.NewTruckRepository(db) // New repository
+	cardRepo := repository.NewCardRepository(db)   // New card repository
 
 	// Initialize services
 	userService := service.NewUserService(userRepo, jwtAuth)
 	jobService := service.NewJobService(jobRepo)
 	companyService := service.NewCompanyService(companyRepo)
 	truckService := service.NewTruckService(truckRepo) // New service
+	cardService := service.NewCardService(cardRepo)    // New card service
 
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userService)
 	jobHandler := handlers.NewJobHandler(jobService)
 	companyHandler := handlers.NewCompanyHandler(companyService)
 	truckHandler := handlers.NewTruckHandler(truckService, minioClient, minioCfg.Bucket)
+	cardHandler := handlers.NewCardHandler(cardService) // New card handler
+
+	verificationRepo := repository.NewVerificationRepository(db)
+	verificationService := service.NewVerificationService(verificationRepo)
+
+	// Initialize verification handler
+	verificationHandler := handlers.NewVerificationHandler(verificationService, minioClient, minioCfg.Bucket)
 
 	// Setup router
 	r := chi.NewRouter()
@@ -135,6 +144,21 @@ func main() {
 			r.Get("/trucks/{id}", truckHandler.GetTruckByID)
 			r.Put("/trucks/{id}", truckHandler.UpdateTruck)
 			r.Delete("/trucks/{id}", truckHandler.DeleteTruck)
+
+			// Card routes (NEW)
+			r.Post("/cards", cardHandler.CreateCard)
+			r.Get("/cards", cardHandler.GetUserCards)
+			r.Get("/cards/{id}", cardHandler.GetCardByID)
+			r.Put("/cards/{id}", cardHandler.UpdateCard)
+			r.Delete("/cards/{id}", cardHandler.DeleteCard)
+			r.Post("/cards/{id}/default", cardHandler.SetDefaultCard)
+
+			r.Route("/verification", func(r chi.Router) {
+				r.Post("/documents", verificationHandler.UploadDocument)
+				r.Get("/documents", verificationHandler.GetUserDocuments)
+				r.Get("/status", verificationHandler.GetVerificationStatus)
+				r.Delete("/documents/{id}", verificationHandler.DeleteDocument)
+			})
 		})
 	})
 

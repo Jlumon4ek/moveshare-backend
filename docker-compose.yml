@@ -12,6 +12,10 @@ services:
       - ./.env
     depends_on:
       - database
+      - minio
+    networks:
+      - default
+
 
   database:
     container_name: movingshare-database
@@ -22,7 +26,10 @@ services:
     env_file:
       - ./.env
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data  
+    networks:
+      - default
+
 
   minio:
     container_name: movingshare-minio
@@ -36,6 +43,8 @@ services:
     # volumes:
     #   - minio_data:/data
     command: server /data --console-address ":9001"
+    networks:
+      - default
 
 
 volumes:
