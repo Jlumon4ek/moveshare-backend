@@ -19,6 +19,8 @@ import (
 	"moveshare/internal/repository"
 	"moveshare/internal/service"
 
+	"github.com/go-chi/cors"
+
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -94,6 +96,11 @@ func main() {
 
 	// Setup router
 	r := chi.NewRouter()
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"*"},
+		AllowedHeaders: []string{"*"},
+	}))
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
