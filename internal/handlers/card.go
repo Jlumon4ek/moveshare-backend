@@ -51,7 +51,7 @@ type CardsResponse struct {
 // CreateCard handles card creation
 // @Summary Create a new payment card
 // @Description Creates a new payment card for the current user
-// @Tags cards
+// @Tags Payment Settings
 // @Accept json
 // @Produce json
 // @Param body body CreateCardRequest true "Card data"
@@ -100,7 +100,7 @@ func (h *CardHandler) CreateCard(w http.ResponseWriter, r *http.Request) {
 // GetUserCards handles fetching all user cards
 // @Summary Get user payment cards
 // @Description Fetches all active payment cards for the current user
-// @Tags cards
+// @Tags Payment Settings
 // @Produce json
 // @Success 200 {object} CardsResponse
 // @Failure 401 {object} map[string]string
@@ -127,7 +127,7 @@ func (h *CardHandler) GetUserCards(w http.ResponseWriter, r *http.Request) {
 // GetCardByID handles fetching a specific card
 // @Summary Get a specific payment card
 // @Description Fetches a specific payment card by ID for the current user
-// @Tags cards
+// @Tags Payment Settings
 // @Produce json
 // @Param id path int true "Card ID"
 // @Success 200 {object} CardResponse
@@ -174,7 +174,7 @@ func (h *CardHandler) GetCardByID(w http.ResponseWriter, r *http.Request) {
 // UpdateCard handles card updates
 // @Summary Update a payment card
 // @Description Updates a payment card for the current user
-// @Tags cards
+// @Tags Payment Settings
 // @Accept json
 // @Produce json
 // @Param id path int true "Card ID"
@@ -245,7 +245,7 @@ func (h *CardHandler) UpdateCard(w http.ResponseWriter, r *http.Request) {
 // DeleteCard handles card soft deletion
 // @Summary Delete a payment card
 // @Description Soft deletes a payment card for the current user
-// @Tags cards
+// @Tags Payment Settings
 // @Produce json
 // @Param id path int true "Card ID"
 // @Success 200 {object} map[string]string
@@ -286,7 +286,7 @@ func (h *CardHandler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 // SetDefaultCard handles setting a card as default
 // @Summary Set card as default
 // @Description Sets a payment card as the default payment method
-// @Tags cards
+// @Tags Payment Settings
 // @Produce json
 // @Param id path int true "Card ID"
 // @Success 200 {object} map[string]string

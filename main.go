@@ -3,26 +3,22 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
-	"os"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
-	httpSwagger "github.com/swaggo/http-swagger"
-
 	_ "moveshare/docs" // Import generated docs for MoveShare API
-
 	"moveshare/internal/auth"
 	"moveshare/internal/config"
 	"moveshare/internal/handlers"
 	"moveshare/internal/repository"
 	"moveshare/internal/service"
+	"net/http"
+	"os"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // @title MoveShare API
@@ -97,72 +93,64 @@ func main() {
 	truckHandler := handlers.NewTruckHandler(truckService, minioClient, minioCfg.Bucket)
 	cardHandler := handlers.NewCardHandler(cardService) // New card handler
 
-	verificationRepo := repository.NewVerificationRepository(db)
-	verificationService := service.NewVerificationService(verificationRepo)
-
-	// Initialize verification handler
-	verificationHandler := handlers.NewVerificationHandler(verificationService, minioClient, minioCfg.Bucket)
-
 	// Setup router
 	r := chi.NewRouter()
+
+	// CORS configuration - allows all origins
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"*"},
-		AllowedHeaders: []string{"*"},
+		AllowedOrigins:   []string{"*"}, // Allow all origins
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false, // Set to false when using "*" for AllowedOrigins
+		MaxAge:           300,   // Maximum value not ignored by any of major browsers
 	}))
+
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// Serve static files for uploaded photos
-	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads/"))))
-
 	// API routes under /api/v1
-	r.Route("/api/v1", func(r chi.Router) {
+	r.Route("/api", func(r chi.Router) {
 		// Public routes
 		r.Post("/sign-up", userHandler.SignUp)
 		r.Post("/sign-in", userHandler.SignIn)
 
-		// Protected routes
 		r.Group(func(r chi.Router) {
 			r.Use(handlers.AuthMiddleware(jwtAuth))
 
-			// Job routes
-			r.Post("/jobs", jobHandler.CreateJob)
-			r.Get("/jobs/available", jobHandler.GetAvailableJobs)
-			r.Get("/jobs/my", jobHandler.GetUserJobs)
-			r.Delete("/jobs/{id}", jobHandler.DeleteJob)
-			r.Post("/jobs/{id}/apply", jobHandler.ApplyForJob)
-			r.Get("/jobs/applications/my", jobHandler.GetMyApplications)
+			r.Route("/jobs", func(r chi.Router) {
+				r.Post("/", jobHandler.CreateJob)
+				r.Get("/available", jobHandler.GetAvailableJobs)
+				r.Get("/my", jobHandler.GetUserJobs)
+				r.Delete("/{id}", jobHandler.DeleteJob)
+				r.Post("/{id}/apply", jobHandler.ApplyForJob)
+				r.Get("/applications/my", jobHandler.GetMyApplications)
+			})
 
-			// Company routes
-			r.Get("/company", companyHandler.GetCompany)
-			r.Patch("/company", companyHandler.PatchCompany)
+			r.Route("/company", func(r chi.Router) {
+				r.Get("/", companyHandler.GetCompany)
+				r.Patch("/", companyHandler.PatchCompany)
+			})
 
-			// Truck routes
-			r.Post("/trucks", truckHandler.CreateTruck)
-			r.Get("/trucks", truckHandler.GetUserTrucks)
-			r.Get("/trucks/{id}", truckHandler.GetTruckByID)
-			r.Put("/trucks/{id}", truckHandler.UpdateTruck)
-			r.Delete("/trucks/{id}", truckHandler.DeleteTruck)
+			r.Route("/trucks", func(r chi.Router) {
+				r.Post("/", truckHandler.CreateTruck)
+				r.Get("/", truckHandler.GetUserTrucks)
+				r.Get("/{id}", truckHandler.GetTruckByID)
+				r.Put("/{id}", truckHandler.UpdateTruck)
+				r.Delete("/{id}", truckHandler.DeleteTruck)
+			})
 
-			// Card routes (NEW)
-			r.Post("/cards", cardHandler.CreateCard)
-			r.Get("/cards", cardHandler.GetUserCards)
-			r.Get("/cards/{id}", cardHandler.GetCardByID)
-			r.Put("/cards/{id}", cardHandler.UpdateCard)
-			r.Delete("/cards/{id}", cardHandler.DeleteCard)
-			r.Post("/cards/{id}/default", cardHandler.SetDefaultCard)
-
-			r.Route("/verification", func(r chi.Router) {
-				r.Post("/documents", verificationHandler.UploadDocument)
-				r.Get("/documents", verificationHandler.GetUserDocuments)
-				r.Get("/status", verificationHandler.GetVerificationStatus)
-				r.Delete("/documents/{id}", verificationHandler.DeleteDocument)
+			r.Route("/cards", func(r chi.Router) {
+				r.Post("/", cardHandler.CreateCard)
+				r.Get("/", cardHandler.GetUserCards)
+				r.Get("/{id}", cardHandler.GetCardByID)
+				r.Put("/{id}", cardHandler.UpdateCard)
+				r.Delete("/{id}", cardHandler.DeleteCard)
+				r.Post("/{id}/default", cardHandler.SetDefaultCard)
 			})
 		})
 	})
 
-	// Swagger documentation
 	r.Get("/swagger/*", httpSwagger.Handler())
 
 	// Start server
@@ -170,6 +158,7 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+
 	log.Printf("Server starting on :%s", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("server failed: %v", err)

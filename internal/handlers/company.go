@@ -7,22 +7,18 @@ import (
 	"net/http"
 )
 
-// CompanyHandler handles HTTP requests for company operations
 type CompanyHandler struct {
 	companyService service.CompanyService
 }
 
-// NewCompanyHandler creates a new CompanyHandler
 func NewCompanyHandler(companyService service.CompanyService) *CompanyHandler {
 	return &CompanyHandler{companyService: companyService}
 }
 
-// CompanyResponse represents the company data response
 type CompanyResponse struct {
 	Company *repository.Company `json:"company"`
 }
 
-// CompanyUpdateRequest represents the partial update request payload
 type CompanyUpdateRequest struct {
 	CompanyName        *string `json:"company_name"`
 	EmailAddress       *string `json:"email_address"`
@@ -40,7 +36,7 @@ type CompanyUpdateRequest struct {
 // GetCompany handles fetching company data for the current user
 // @Summary Get company data
 // @Description Fetches company data for the current user
-// @Tags company
+// @Tags Company Information
 // @Produce json
 // @Success 200 {object} CompanyResponse
 // @Failure 401 {object} map[string]string
@@ -73,7 +69,7 @@ func (h *CompanyHandler) GetCompany(w http.ResponseWriter, r *http.Request) {
 // PatchCompany handles partial update of company data for the current user
 // @Summary Update company data
 // @Description Partially updates company data for the current user
-// @Tags company
+// @Tags Company Information
 // @Accept json
 // @Produce json
 // @Param body body CompanyUpdateRequest true "Company update data"

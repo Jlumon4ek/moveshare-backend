@@ -68,7 +68,7 @@ type TrucksResponse struct {
 // CreateTruck godoc
 // @Summary      Create a new truck
 // @Description  Create a new truck with optional photo uploads. Photos will be stored in MinIO and presigned URLs will be returned.
-// @Tags         trucks
+// @Tags         Fleet Management
 // @Accept       multipart/form-data
 // @Produce      json
 // @Param        truck_name      formData string  true  "Truck Name"
@@ -168,7 +168,7 @@ func (h *TruckHandler) CreateTruck(w http.ResponseWriter, r *http.Request) {
 // GetUserTrucks godoc
 // @Summary      Get user trucks
 // @Description  Get all trucks for the authenticated user
-// @Tags         trucks
+// @Tags         Fleet Management
 // @Produce      json
 // @Success      200 {object} TrucksResponse
 // @Failure      401 {object} map[string]string
@@ -194,7 +194,7 @@ func (h *TruckHandler) GetUserTrucks(w http.ResponseWriter, r *http.Request) {
 // GetTruckByID godoc
 // @Summary      Get truck by ID
 // @Description  Get a specific truck by ID for the authenticated user
-// @Tags         trucks
+// @Tags         Fleet Management
 // @Produce      json
 // @Param        id path int true "Truck ID"
 // @Success      200 {object} TruckResponse
@@ -229,7 +229,7 @@ func (h *TruckHandler) GetTruckByID(w http.ResponseWriter, r *http.Request) {
 // UpdateTruck godoc
 // @Summary      Update truck
 // @Description  Update an existing truck
-// @Tags         trucks
+// @Tags         Fleet Management
 // @Accept       multipart/form-data
 // @Produce      json
 // @Param        id path int true "Truck ID"
@@ -368,7 +368,7 @@ func (h *TruckHandler) UpdateTruck(w http.ResponseWriter, r *http.Request) {
 // DeleteTruck godoc
 // @Summary      Delete truck
 // @Description  Delete a truck
-// @Tags         trucks
+// @Tags         Fleet Management
 // @Param        id path int true "Truck ID"
 // @Success      204
 // @Failure      401 {object} map[string]string
