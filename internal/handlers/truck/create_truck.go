@@ -25,7 +25,7 @@ import (
 // @Param        width           formData number   true  "Width (ft)"
 // @Param        height          formData number   true  "Height (ft)"
 // @Param        max_weight      formData number   true  "Max Weight (lbs)"
-// @Param        truck_type      formData string   true  "Truck Type" Enums(Small, Medium, Large)
+// @Param fileType formData string true "File Type" Enums(MC-License, DOT-Certificate, Insurance-Certificate, Business-License)
 // @Param        climate_control formData boolean  false "Climate Control"
 // @Param        liftgate        formData boolean  false "Liftgate"
 // @Param        pallet_jack     formData boolean  false "Pallet Jack"

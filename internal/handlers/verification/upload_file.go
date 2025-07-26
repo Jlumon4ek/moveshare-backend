@@ -13,7 +13,7 @@ import (
 // @Description  Uploads a verification file associated with the authenticated user.
 // @Tags         Verification
 // @Accept       multipart/form-data
-// @Param        fileType            	formData string   true  "File Type"
+// @Param        fileType            	formData string   true  "File Type" Enums(MC License, DOT Certificate, Insurance Certificate, Business License)
 // @Param        file           		formData file   true "Verification file"
 // @Security     BearerAuth
 // @Router       /verification/ [post]

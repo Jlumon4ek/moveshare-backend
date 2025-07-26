@@ -32,12 +32,6 @@ func GetCompany(service service.CompanyService) gin.HandlerFunc {
 			})
 			return
 		}
-		if company == nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Company not found",
-			})
-			return
-		}
 		c.JSON(http.StatusOK, company)
 	}
 }
