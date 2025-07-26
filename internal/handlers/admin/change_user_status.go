@@ -20,6 +20,7 @@ import (
 // @Failure      400      {object}  map[string]string
 // @Failure      500      {object}  map[string]string
 // @Router       /admin/user/{userID}/status [patch]
+// @Security     BearerAuth
 func ChangeUserStatus(adminService service.AdminService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDStr := c.Param("userID")

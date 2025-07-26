@@ -10,6 +10,7 @@ import (
 	"moveshare/internal/repository/job"
 	"moveshare/internal/repository/truck"
 	"moveshare/internal/repository/user"
+	"moveshare/internal/repository/verification"
 
 	"moveshare/internal/router"
 	"moveshare/internal/service"
@@ -71,6 +72,9 @@ func main() {
 	truckRepo := truck.NewTruckRepository(db)
 	truckService := service.NewTruckService(truckRepo, minioRepo)
 
+	verificationRepo := verification.NewVerificationRepository(db)
+	verificationService := service.NewVerificationService(verificationRepo, minioRepo)
+
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
@@ -93,6 +97,7 @@ func main() {
 	router.CompanyRouter(r, companyService, jwtAuth)
 	router.JobRouter(r, jobService, jwtAuth)
 	router.TruckRouter(r, truckService, jwtAuth)
+	router.VerificationRouter(r, verificationService, jwtAuth)
 
 	log.Println("Starting server on :8080")
 	log.Println("Swagger UI available at: http://localhost:8080/swagger/index.html")

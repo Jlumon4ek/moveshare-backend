@@ -15,6 +15,7 @@ import (
 // @Success 200 {object} map[string]int
 // @Failure 500 {object} map[string]string
 // @Router /admin/users/count [get]
+// @Security     BearerAuth
 func GetUserCount(adminService service.AdminService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userCount, err := adminService.GetUserCount(c.Request.Context())

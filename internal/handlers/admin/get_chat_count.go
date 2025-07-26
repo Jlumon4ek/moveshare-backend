@@ -15,6 +15,7 @@ import (
 // @Success 200 {object} map[string]int
 // @Failure 500 {object} map[string]string
 // @Router /admin/conversations/count [get]
+// @Security     BearerAuth
 func GetChatConversationCount(adminService service.AdminService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		count, err := adminService.GetChatConversationCount(c.Request.Context())

@@ -12,8 +12,7 @@ func (r *repository) GetAllJobs(ctx context.Context, limit, offset int) ([]model
 			  early_delivery_bonus, payment_terms, weight_lb, volume_cu_ft, liftgate, 
 			  fragile_items, climate_control, assembly_required, extra_insurance, 
 			  additional_packing, status, created_at, updated_at 
-			  FROM jobs WHERE status = 'active' 
-			  ORDER BY created_at DESC 
+			  FROM jobs ORDER BY created_at DESC 
 			  LIMIT $1 OFFSET $2`
 
 	rows, err := r.db.Query(ctx, query, limit, offset)

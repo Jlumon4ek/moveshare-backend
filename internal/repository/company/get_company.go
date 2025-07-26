@@ -2,7 +2,10 @@ package company
 
 import (
 	"context"
+	"errors"
 	"moveshare/internal/models"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func (r *repository) GetCompany(ctx context.Context, userID int64) (*models.Company, error) {
@@ -21,7 +24,7 @@ func (r *repository) GetCompany(ctx context.Context, userID int64) (*models.Comp
 		&company.DotNumber, &company.CreatedAt, &company.UpdatedAt,
 	)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
