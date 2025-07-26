@@ -2,11 +2,14 @@ package company
 
 import (
 	"context"
+	"errors"
+	"moveshare/internal/models"
 	"moveshare/internal/service"
 	"moveshare/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 // GetCompany godoc
@@ -26,6 +29,11 @@ func GetCompany(service service.CompanyService) gin.HandlerFunc {
 
 		company, err := service.GetCompany(context.Background(), userID)
 		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				c.JSON(http.StatusOK, &models.Company{})
+				return
+			}
+
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to get company",
 				"details": err.Error(),

@@ -2,31 +2,50 @@ package company
 
 import (
 	"context"
-	"errors"
 	"moveshare/internal/models"
-
-	"github.com/jackc/pgx/v5"
 )
 
 func (r *repository) GetCompany(ctx context.Context, userID int64) (*models.Company, error) {
 	query := `
-		SELECT id, user_id, company_name, email_address, address, state, mc_license_number,
-		       company_description, contact_person, phone_number, city, zip_code, dot_number,
-		       created_at, updated_at
-		FROM companies
-		WHERE user_id = $1
+		SELECT 
+			c.id, 
+			c.user_id, 
+			c.company_name, 
+			u.email AS email_address, 
+			c.address, 
+			c.state, 
+			c.mc_license_number,
+			c.company_description, 
+			c.contact_person, 
+			c.phone_number, 
+			c.city, 
+			c.zip_code, 
+			c.dot_number,
+			c.created_at, 
+			c.updated_at
+		FROM companies c
+		JOIN users u ON c.user_id = u.id
+		WHERE c.user_id = $1
 	`
 	var company models.Company
 	err := r.db.QueryRow(ctx, query, userID).Scan(
-		&company.ID, &company.UserID, &company.CompanyName, &company.EmailAddress,
-		&company.Address, &company.State, &company.MCLicenseNumber, &company.CompanyDescription,
-		&company.ContactPerson, &company.PhoneNumber, &company.City, &company.ZipCode,
-		&company.DotNumber, &company.CreatedAt, &company.UpdatedAt,
+		&company.ID,
+		&company.UserID,
+		&company.CompanyName,
+		&company.EmailAddress,
+		&company.Address,
+		&company.State,
+		&company.MCLicenseNumber,
+		&company.CompanyDescription,
+		&company.ContactPerson,
+		&company.PhoneNumber,
+		&company.City,
+		&company.ZipCode,
+		&company.DotNumber,
+		&company.CreatedAt,
+		&company.UpdatedAt,
 	)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		}
 		return nil, err
 	}
 	return &company, nil
