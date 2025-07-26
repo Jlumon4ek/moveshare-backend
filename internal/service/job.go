@@ -2,72 +2,49 @@ package service
 
 import (
 	"context"
-	"errors"
-	"moveshare/internal/repository"
+	"moveshare/internal/models"
+	"moveshare/internal/repository/job"
 )
 
-// JobService defines the interface for job business logic
 type JobService interface {
-	CreateJob(ctx context.Context, userID int64, job *repository.Job) error
-	GetAvailableJobs(ctx context.Context, userID int64, filters map[string]string, limit, offset int) ([]repository.Job, error)
-	GetUserJobs(ctx context.Context, userID int64) ([]repository.Job, error)
+	ApplyJob(ctx context.Context, userID, jobID int64) error
+	CreateJob(ctx context.Context, job *models.Job) error
 	DeleteJob(ctx context.Context, userID, jobID int64) error
-	ApplyForJob(ctx context.Context, userID, jobID int64) error
-	GetMyApplications(ctx context.Context, userID int64) ([]repository.Job, error) // New method
+	GetAvailableJobs(ctx context.Context, userID int64, filters map[string]string, limit, offset int) ([]models.Job, error)
+	GetMyApplications(ctx context.Context, userID int64) ([]models.Job, error)
+	GetUserJobs(ctx context.Context, userID int64) ([]models.Job, error)
 }
 
-// jobService implements JobService
 type jobService struct {
-	jobRepo repository.JobRepository
+	jobRepo job.JobRepository
 }
 
-// NewJobService creates a new JobService
-func NewJobService(jobRepo repository.JobRepository) JobService {
-	return &jobService{jobRepo: jobRepo}
-}
-
-// CreateJob creates a new job for a user
-func (s *jobService) CreateJob(ctx context.Context, userID int64, job *repository.Job) error {
-	if job.JobTitle == "" || job.PickupLocation == "" || job.DeliveryLocation == "" {
-		return errors.New("job title, pickup location, and delivery location are required")
+func NewJobService(jobRepo job.JobRepository) JobService {
+	return &jobService{
+		jobRepo: jobRepo,
 	}
-	job.UserID = userID
+}
+
+func (s *jobService) ApplyJob(ctx context.Context, userID, jobID int64) error {
+	return s.jobRepo.ApplyJob(ctx, userID, jobID)
+}
+
+func (s *jobService) CreateJob(ctx context.Context, job *models.Job) error {
 	return s.jobRepo.CreateJob(ctx, job)
 }
 
-// GetAvailableJobs fetches jobs excluding those created by the given userID with filters and pagination
-func (s *jobService) GetAvailableJobs(ctx context.Context, userID int64, filters map[string]string, limit, offset int) ([]repository.Job, error) {
-	return s.jobRepo.GetAvailableJobs(ctx, userID, filters, limit, offset)
-}
-
-// GetUserJobs fetches all jobs created by the given userID
-func (s *jobService) GetUserJobs(ctx context.Context, userID int64) ([]repository.Job, error) {
-	return s.jobRepo.GetUserJobs(ctx, userID)
-}
-
-// DeleteJob deletes a job if it belongs to the given userID
 func (s *jobService) DeleteJob(ctx context.Context, userID, jobID int64) error {
 	return s.jobRepo.DeleteJob(ctx, userID, jobID)
 }
 
-// ApplyForJob allows a user to apply for a job
-func (s *jobService) ApplyForJob(ctx context.Context, userID, jobID int64) error {
-	// Check if the user is not the job creator
-	jobs, err := s.jobRepo.GetUserJobs(ctx, userID)
-	if err != nil {
-		return err
-	}
-	for _, job := range jobs {
-		if job.ID == jobID {
-			return errors.New("cannot apply to your own job")
-		}
-	}
-
-	return s.jobRepo.ApplyForJob(ctx, userID, jobID)
+func (s *jobService) GetAvailableJobs(ctx context.Context, userID int64, filters map[string]string, limit, offset int) ([]models.Job, error) {
+	return s.jobRepo.GetAvailableJobs(ctx, userID, filters, limit, offset)
 }
 
-// GetMyApplications fetches all applications submitted by the given userID
-func (s *jobService) GetMyApplications(ctx context.Context, userID int64) ([]repository.Job, error) {
-	// This is a placeholder; implement the actual logic in the repository
+func (s *jobService) GetMyApplications(ctx context.Context, userID int64) ([]models.Job, error) {
 	return s.jobRepo.GetMyApplications(ctx, userID)
+}
+
+func (s *jobService) GetUserJobs(ctx context.Context, userID int64) ([]models.Job, error) {
+	return s.jobRepo.GetUserJobs(ctx, userID)
 }

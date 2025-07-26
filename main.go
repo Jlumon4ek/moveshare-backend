@@ -2,165 +2,89 @@ package main
 
 import (
 	"context"
-	"log"
-	_ "moveshare/docs" // Import generated docs for MoveShare API
-	"moveshare/internal/auth"
+	"log" // Импорт сгенерированных документов
 	"moveshare/internal/config"
-	"moveshare/internal/handlers"
-	"moveshare/internal/repository"
-	"moveshare/internal/service"
-	"net/http"
-	"os"
+	"moveshare/internal/repository/admin"
+	"moveshare/internal/repository/company"
+	"moveshare/internal/repository/user"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
+	"moveshare/internal/router"
+	"moveshare/internal/service"
+
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-	httpSwagger "github.com/swaggo/http-swagger"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "moveshare/docs"
 )
 
 // @title MoveShare API
 // @version 1.0
-// @description API for user authentication, job management, and truck management in MoveShare application
-// @termsOfService http://swagger.io/terms/
-// @contact.name API Support
-// @contact.email support@moveshare.com
-// @license.name MIT
-// @host localhost:8080
-// @BasePath /api/v1
+// @description API для приложения MoveShare
+
+// @schemes http https
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+// @description Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".
+
 func main() {
-	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Initialize database connection
-	db, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+	db, err := pgxpool.New(context.Background(), cfg.Database.URL)
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
-	// Initialize JWT auth
-	jwtAuth, err := auth.NewJWTAuth("keys/jwt-private.pem", "keys/jwt-public.pem")
+	if err := db.Ping(context.Background()); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+
+	jwtAuth, err := service.NewJWTAuth("keys/jwt-private.pem", "keys/jwt-public.pem")
 	if err != nil {
 		log.Fatalf("failed to initialize JWT auth: %v", err)
 	}
 
-	minioCfg := config.LoadMinioConfig()
-	minioClient, err := minio.New(minioCfg.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(minioCfg.AccessKey, minioCfg.SecretKey, ""),
-		Secure: minioCfg.UseSSL,
-	})
-	if err != nil {
-		log.Fatalf("failed to init minio: %v", err)
-	}
+	adminRepo := admin.NewAdminRepository(db)
+	adminService := service.NewAdminService(adminRepo)
 
-	// Создайте bucket, если его нет
-	ctx := context.Background()
-	exists, err := minioClient.BucketExists(ctx, minioCfg.Bucket)
-	if err != nil {
-		log.Fatalf("failed to check minio bucket: %v", err)
-	}
-	if !exists {
-		err = minioClient.MakeBucket(ctx, minioCfg.Bucket, minio.MakeBucketOptions{})
-		if err != nil {
-			log.Fatalf("failed to create minio bucket: %v", err)
-		}
-	}
+	userRepo := user.NewUserRepository(db)
+	userService := service.NewUserService(userRepo)
 
-	// Initialize repositories
-	userRepo := repository.NewUserRepository(db)
-	jobRepo := repository.NewJobRepository(db)
-	companyRepo := repository.NewCompanyRepository(db)
-	truckRepo := repository.NewTruckRepository(db) // New repository
-	cardRepo := repository.NewCardRepository(db)   // New card repository
-
-	// Initialize services
-	userService := service.NewUserService(userRepo, jwtAuth)
-	jobService := service.NewJobService(jobRepo)
+	companyRepo := company.NewCompanyRepository(db)
 	companyService := service.NewCompanyService(companyRepo)
-	truckService := service.NewTruckService(truckRepo) // New service
-	cardService := service.NewCardService(cardRepo)    // New card service
 
-	// Initialize handlers
-	userHandler := handlers.NewUserHandler(userService)
-	jobHandler := handlers.NewJobHandler(jobService)
-	companyHandler := handlers.NewCompanyHandler(companyService)
-	truckHandler := handlers.NewTruckHandler(truckService, minioClient, minioCfg.Bucket)
-	cardHandler := handlers.NewCardHandler(cardService) // New card handler
+	r := gin.Default()
 
-	// Setup router
-	r := chi.NewRouter()
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-	// CORS configuration - allows all origins
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"}, // Allow all origins
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: false, // Set to false when using "*" for AllowedOrigins
-		MaxAge:           300,   // Maximum value not ignored by any of major browsers
-	}))
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
 
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-
-	// API routes under /api/v1
-	r.Route("/api", func(r chi.Router) {
-		// Public routes
-		r.Post("/sign-up", userHandler.SignUp)
-		r.Post("/sign-in", userHandler.SignIn)
-
-		r.Group(func(r chi.Router) {
-			r.Use(handlers.AuthMiddleware(jwtAuth))
-
-			r.Route("/jobs", func(r chi.Router) {
-				r.Post("/", jobHandler.CreateJob)
-				r.Get("/available", jobHandler.GetAvailableJobs)
-				r.Get("/my", jobHandler.GetUserJobs)
-				r.Delete("/{id}", jobHandler.DeleteJob)
-				r.Post("/{id}/apply", jobHandler.ApplyForJob)
-				r.Get("/applications/my", jobHandler.GetMyApplications)
-			})
-
-			r.Route("/company", func(r chi.Router) {
-				r.Get("/", companyHandler.GetCompany)
-				r.Patch("/", companyHandler.PatchCompany)
-			})
-
-			r.Route("/trucks", func(r chi.Router) {
-				r.Post("/", truckHandler.CreateTruck)
-				r.Get("/", truckHandler.GetUserTrucks)
-				r.Get("/{id}", truckHandler.GetTruckByID)
-				r.Put("/{id}", truckHandler.UpdateTruck)
-				r.Delete("/{id}", truckHandler.DeleteTruck)
-			})
-
-			r.Route("/cards", func(r chi.Router) {
-				r.Post("/", cardHandler.CreateCard)
-				r.Get("/", cardHandler.GetUserCards)
-				r.Get("/{id}", cardHandler.GetCardByID)
-				r.Put("/{id}", cardHandler.UpdateCard)
-				r.Delete("/{id}", cardHandler.DeleteCard)
-				r.Post("/{id}/default", cardHandler.SetDefaultCard)
-			})
-		})
+		c.Next()
 	})
 
-	r.Get("/swagger/*", httpSwagger.Handler())
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Start server
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	router.AdminRouter(r, adminService)
+	router.UserRouter(r, userService, jwtAuth)
+	router.CompanyRouter(r, companyService, jwtAuth)
 
-	log.Printf("Server starting on :%s", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatalf("server failed: %v", err)
+	log.Println("Starting server on :8080")
+	log.Println("Swagger UI available at: http://localhost:8080/swagger/index.html")
+
+	if err := r.Run(":8080"); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
 }
