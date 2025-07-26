@@ -14,6 +14,7 @@ type AdminRepository interface {
 	GetAllJobs(ctx context.Context, limit, offset int) ([]models.Job, error)
 	ChangeUserStatus(ctx context.Context, userID int, newStatus string) error
 	GetUserRole(ctx context.Context, userID int64) (string, error)
+	ChangeVerificationFileStatus(ctx context.Context, fileID int, newStatus string) error
 }
 
 type repository struct {

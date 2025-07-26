@@ -14,9 +14,10 @@ func AdminRouter(r *gin.Engine, jwtAuth service.JWTAuth, adminService service.Ad
 	adminGroup.Use(middleware.AdminMiddleware(jwtAuth, adminService))
 	{
 		adminGroup.GET("/users/count", admin.GetUserCount(adminService))
-		adminGroup.GET("/conversations/count", admin.GetChatConversationCount(adminService))
 		adminGroup.GET("/users", admin.GetUsersList(adminService))
-		adminGroup.GET("/jobs", admin.GetAllJobs(adminService))
 		adminGroup.PATCH("/user/:userID/status", admin.ChangeUserStatus(adminService))
+		adminGroup.PATCH("/verification/file/:fileID/status", admin.ChangeVerificationFileStatus(adminService))
+		adminGroup.GET("/conversations/count", admin.GetChatConversationCount(adminService))
+		adminGroup.GET("/jobs", admin.GetAllJobs(adminService))
 	}
 }

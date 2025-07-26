@@ -7,7 +7,7 @@ import (
 
 func (r *repository) InsertFileID(ctx context.Context, userID int64, objectName string, fileType string) error {
 	query := `
-		INSERT INTO file_ids (user_id, object_name, file_type)
+		INSERT INTO verification_file (user_id, object_name, file_type)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (user_id, file_type) DO UPDATE
 		SET object_name = EXCLUDED.object_name

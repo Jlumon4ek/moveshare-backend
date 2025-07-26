@@ -13,5 +13,6 @@ func VerificationRouter(r *gin.Engine, verificationService service.VerificationS
 	verificationGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{
 		verificationGroup.POST("/", verification.UploadVerificationFile(verificationService))
+		verificationGroup.GET("/files", verification.GetVerificationFile(verificationService))
 	}
 }
