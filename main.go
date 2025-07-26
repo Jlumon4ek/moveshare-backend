@@ -4,9 +4,11 @@ import (
 	"context"
 	"log"
 	"moveshare/internal/config"
+	"moveshare/internal/repository"
 	"moveshare/internal/repository/admin"
 	"moveshare/internal/repository/company"
 	"moveshare/internal/repository/job"
+	"moveshare/internal/repository/truck"
 	"moveshare/internal/repository/user"
 
 	"moveshare/internal/router"
@@ -62,6 +64,13 @@ func main() {
 	jobRepo := job.NewJobRepository(db)
 	jobService := service.NewJobService(jobRepo)
 
+	minioRepo, err := repository.MinioRepository(&cfg.Minio)
+	if err != nil {
+		log.Fatalf("failed to initialize Minio repository: %v", err)
+	}
+	truckRepo := truck.NewTruckRepository(db)
+	truckService := service.NewTruckService(truckRepo, minioRepo)
+
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
@@ -83,6 +92,7 @@ func main() {
 	router.UserRouter(r, userService, jwtAuth)
 	router.CompanyRouter(r, companyService, jwtAuth)
 	router.JobRouter(r, jobService, jwtAuth)
+	router.TruckRouter(r, truckService, jwtAuth)
 
 	log.Println("Starting server on :8080")
 	log.Println("Swagger UI available at: http://localhost:8080/swagger/index.html")

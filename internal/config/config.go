@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Database DatabaseConfig
 	Minio    MinioConfig
+	Stripe   StripeConfig
 }
 
 type MinioConfig struct {
@@ -21,6 +22,12 @@ type MinioConfig struct {
 
 type DatabaseConfig struct {
 	URL string
+}
+
+type StripeConfig struct {
+	PublicKey     string
+	PrivateKey    string
+	RestrictedKey string
 }
 
 func Load() (*Config, error) {
@@ -78,4 +85,20 @@ func loadMinioConfig() *MinioConfig {
 		UseSSL:    false,
 		Bucket:    bucket,
 	}
+}
+
+func loadStripeConfig() (*StripeConfig, error) {
+	publicKey := os.Getenv("STRIPE_PUBLIC_KEY")
+	privateKey := os.Getenv("STRIPE_PRIVATE_KEY")
+	restrictedKey := os.Getenv("STRIPE_RESTRICTED_KEY")
+
+	if publicKey == "" || privateKey == "" || restrictedKey == "" {
+		return nil, fmt.Errorf("missing required Stripe environment variables")
+	}
+
+	return &StripeConfig{
+		PublicKey:     publicKey,
+		PrivateKey:    privateKey,
+		RestrictedKey: restrictedKey,
+	}, nil
 }

@@ -12,7 +12,7 @@ import (
 // GetCompany godoc
 // @Summary      Получить информацию о компании
 // @Description  Возвращает компанию, связанную с текущим пользователем
-// @Tags         company
+// @Tags         Company
 // @Security     BearerAuth
 // @Produce      json
 // @Router       /company/ [get]

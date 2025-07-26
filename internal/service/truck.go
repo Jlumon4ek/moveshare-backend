@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"mime/multipart"
 	"moveshare/internal/models"
 	"moveshare/internal/repository"
 	"moveshare/internal/repository/truck"
@@ -12,7 +11,7 @@ import (
 )
 
 type TruckService interface {
-	CreateTruck(ctx context.Context, truck *models.Truck, photos []*multipart.FileHeader) error
+	CreateTruck(ctx context.Context, truck *models.Truck) error
 	DeleteTruck(ctx context.Context, id int64) error
 	GetTruckByID(ctx context.Context, id int64) (*models.Truck, error)
 	GetUserTrucks(ctx context.Context, userID int64) ([]*models.Truck, error)
@@ -31,13 +30,13 @@ func NewTruckService(repo truck.TruckRepository, minioRepo *repository.Repositor
 	return &truckService{repo: repo, minioRepo: minioRepo}
 }
 
-func (s *truckService) CreateTruck(ctx context.Context, truck *models.Truck, photos []*multipart.FileHeader) error {
+func (s *truckService) CreateTruck(ctx context.Context, truck *models.Truck) error {
 	truck, err := s.repo.CreateTruck(ctx, truck)
 	if err != nil {
 		return fmt.Errorf("failed to create truck: %w", err)
 	}
 
-	for _, fileHeader := range photos {
+	for _, fileHeader := range truck.Photos {
 		file, err := fileHeader.Open()
 		if err != nil {
 			return fmt.Errorf("failed to open photo: %w", err)
@@ -49,8 +48,8 @@ func (s *truckService) CreateTruck(ctx context.Context, truck *models.Truck, pho
 		if err != nil {
 			return fmt.Errorf("failed to read photo: %w", err)
 		}
-
-		objectName := fmt.Sprintf("truck_%d/%d_%s", truck.ID, time.Now().UnixNano(), filepath.Base(fileHeader.Filename))
+		ext := filepath.Ext(fileHeader.Filename)
+		objectName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 
 		err = s.minioRepo.UploadBytes(ctx, "trucks", objectName, data, fileHeader.Header.Get("Content-Type"))
 		if err != nil {
@@ -69,6 +68,7 @@ func (s *truckService) DeleteTruck(ctx context.Context, id int64) error {
 	if err := s.repo.DeleteTruck(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete truck: %w", err)
 	}
+
 	return nil
 }
 
@@ -91,8 +91,7 @@ func (s *truckService) GetTruckByID(ctx context.Context, id int64) (*models.Truc
 		}
 		photoURLs = append(photoURLs, url)
 	}
-
-	truck.Photos = photoURLs
+	truck.PhotoURLs = photoURLs
 	return truck, nil
 
 }
@@ -109,16 +108,15 @@ func (s *truckService) GetUserTrucks(ctx context.Context, userID int64) ([]*mode
 			return nil, fmt.Errorf("failed to get photos for truck %d: %w", truck.ID, err)
 		}
 
-		var photoURLs []string
+		var urls []string
 		for _, objectName := range photoIDs {
 			url, err := s.minioRepo.GetFileURL(ctx, "trucks", objectName, 10*time.Minute)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get URL for %s: %w", objectName, err)
 			}
-			photoURLs = append(photoURLs, url)
+			urls = append(urls, url)
 		}
-
-		truck.Photos = photoURLs
+		truck.PhotoURLs = urls
 	}
 
 	return trucks, nil

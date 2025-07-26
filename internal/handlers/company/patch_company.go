@@ -13,7 +13,7 @@ import (
 // PatchCompany godoc
 // @Summary      Обновить информацию о компании
 // @Description  Частично обновляет компанию, связанную с текущим пользователем
-// @Tags         company
+// @Tags         Company
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json

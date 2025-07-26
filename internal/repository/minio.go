@@ -75,11 +75,11 @@ func (r *Repository) DownloadFile(ctx context.Context, bucket, objectName, fileP
 }
 
 func (r *Repository) GetFileURL(ctx context.Context, bucket, objectName string, expires time.Duration) (string, error) {
-	url, err := r.client.PresignedGetObject(ctx, bucket, objectName, expires, nil)
+	presignedURL, err := r.client.PresignedGetObject(ctx, bucket, objectName, expires, nil)
 	if err != nil {
 		return "", err
 	}
-	return url.String(), nil
+	return presignedURL.String(), nil
 }
 
 func (r *Repository) ListObjects(ctx context.Context, bucket, prefix string) ([]string, error) {
