@@ -12,6 +12,7 @@ type AdminService interface {
 	GetUsersList(ctx context.Context, limit, offset int) ([]models.User, error)
 	GetActiveJobs(ctx context.Context, limit, offset int) ([]models.Job, error)
 	ChangeUserStatus(ctx context.Context, userID int, newStatus string) error
+	GetUserRole(ctx context.Context, userID int64) (string, error)
 }
 
 type adminService struct {
@@ -42,4 +43,8 @@ func (s *adminService) GetActiveJobs(ctx context.Context, limit, offset int) ([]
 
 func (s *adminService) ChangeUserStatus(ctx context.Context, userID int, newStatus string) error {
 	return s.adminRepo.ChangeUserStatus(ctx, userID, newStatus)
+}
+
+func (s *adminService) GetUserRole(ctx context.Context, userID int64) (string, error) {
+	return s.adminRepo.GetUserRole(ctx, userID)
 }

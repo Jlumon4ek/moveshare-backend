@@ -12,3 +12,30 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+type SignUpRequest struct {
+	Username string `json:"username" example:"Sabalaq"`
+	Email    string `json:"email" example:"zhanseriknurym@gmail.com"`
+	Password string `json:"password" example:"Lineage6_"`
+}
+
+type SignUpResponse struct {
+	Message string `json:"message"`
+}
+
+type SignInRequest struct {
+	Identifier string `json:"identifier" example:"Sabalaq"`
+	Password   string `json:"password" example:"Lineage6_"`
+}
+
+type SignInResponse struct {
+	UserID       int64  `json:"user_id" example:"1"`
+	Username     string `json:"username" example:"Sabalaq"`
+	Email        string `json:"email" example:"zhanseriknurym@gmail.com"`
+	AccessToken  string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	RefreshToken string `json:"refresh_token" example:"d1f1e1f1e1f1e1f1e1f1e1f1e1f1e1f1"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error" example:"Invalid request"`
+}

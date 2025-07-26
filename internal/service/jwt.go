@@ -54,7 +54,7 @@ func (j *jwtAuth) GenerateAccessToken(userID int64, username, email string) (str
 		"sub":      userID,
 		"username": username,
 		"email":    email,
-		"exp":      time.Now().Add(15 * time.Minute).Unix(),
+		"exp":      time.Now().Add(500 * time.Minute).Unix(),
 		"iat":      time.Now().Unix(),
 	}
 

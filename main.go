@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"log" // Импорт сгенерированных документов
+	"log"
 	"moveshare/internal/config"
 	"moveshare/internal/repository/admin"
 	"moveshare/internal/repository/company"
+	"moveshare/internal/repository/job"
 	"moveshare/internal/repository/user"
 
 	"moveshare/internal/router"
@@ -23,12 +24,10 @@ import (
 // @version 1.0
 // @description API для приложения MoveShare
 
-// @schemes http https
-
-// @securityDefinitions.apikey ApiKeyAuth
+// @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".
+// @description Enter JWT token in format: Bearer {your_token_here}
 
 func main() {
 	cfg, err := config.Load()
@@ -60,6 +59,9 @@ func main() {
 	companyRepo := company.NewCompanyRepository(db)
 	companyService := service.NewCompanyService(companyRepo)
 
+	jobRepo := job.NewJobRepository(db)
+	jobService := service.NewJobService(jobRepo)
+
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
@@ -77,9 +79,10 @@ func main() {
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	router.AdminRouter(r, adminService)
+	router.AdminRouter(r, jwtAuth, adminService)
 	router.UserRouter(r, userService, jwtAuth)
 	router.CompanyRouter(r, companyService, jwtAuth)
+	router.JobRouter(r, jobService, jwtAuth)
 
 	log.Println("Starting server on :8080")
 	log.Println("Swagger UI available at: http://localhost:8080/swagger/index.html")

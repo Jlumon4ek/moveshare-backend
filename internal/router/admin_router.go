@@ -3,15 +3,15 @@ package router
 import (
 	"moveshare/internal/handlers/admin"
 
-	// "moveshare/internal/middleware"
+	"moveshare/internal/middleware"
 	"moveshare/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
 
-func AdminRouter(r *gin.Engine, adminService service.AdminService) {
+func AdminRouter(r *gin.Engine, jwtAuth service.JWTAuth, adminService service.AdminService) {
 	adminGroup := r.Group("/admin")
-	// adminGroup.Use(middleware.AuthMiddleware(jwtAuth))
+	adminGroup.Use(middleware.AdminMiddleware(jwtAuth, adminService))
 	{
 		adminGroup.GET("/users/count", admin.GetUserCount(adminService))
 		adminGroup.GET("/conversations/count", admin.GetChatConversationCount(adminService))

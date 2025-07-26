@@ -13,6 +13,7 @@ type AdminRepository interface {
 	GetUsersList(ctx context.Context, limit, offset int) ([]models.User, error)
 	GetAllJobs(ctx context.Context, limit, offset int) ([]models.Job, error)
 	ChangeUserStatus(ctx context.Context, userID int, newStatus string) error
+	GetUserRole(ctx context.Context, userID int64) (string, error)
 }
 
 type repository struct {

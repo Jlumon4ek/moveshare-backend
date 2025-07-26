@@ -7,8 +7,8 @@ import (
 )
 
 type JobService interface {
-	ApplyJob(ctx context.Context, userID, jobID int64) error
-	CreateJob(ctx context.Context, job *models.Job) error
+	ApplyJob(ctx context.Context, userID int64, jobID int64) error
+	CreateJob(ctx context.Context, job *models.Job, userId int64) error
 	DeleteJob(ctx context.Context, userID, jobID int64) error
 	GetAvailableJobs(ctx context.Context, userID int64, filters map[string]string, limit, offset int) ([]models.Job, error)
 	GetMyApplications(ctx context.Context, userID int64) ([]models.Job, error)
@@ -26,14 +26,22 @@ func NewJobService(jobRepo job.JobRepository) JobService {
 }
 
 func (s *jobService) ApplyJob(ctx context.Context, userID, jobID int64) error {
-	return s.jobRepo.ApplyJob(ctx, userID, jobID)
+	if err := s.jobRepo.ApplyJob(ctx, userID, jobID); err != nil {
+		return err
+	}
+
+	if err := s.jobRepo.ChangeJobStatus(ctx, jobID, "applied"); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (s *jobService) CreateJob(ctx context.Context, job *models.Job) error {
-	return s.jobRepo.CreateJob(ctx, job)
+func (s *jobService) CreateJob(ctx context.Context, job *models.Job, userId int64) error {
+	return s.jobRepo.CreateJob(ctx, job, userId)
 }
 
-func (s *jobService) DeleteJob(ctx context.Context, userID, jobID int64) error {
+func (s *jobService) DeleteJob(ctx context.Context, userID int64, jobID int64) error {
 	return s.jobRepo.DeleteJob(ctx, userID, jobID)
 }
 
