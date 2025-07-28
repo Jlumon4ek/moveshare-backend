@@ -10,6 +10,7 @@ import (
 func UserRouter(r *gin.Engine, userService service.UserService, jwtAuth service.JWTAuth) {
 	authGroup := r.Group("/auth")
 	{
+		authGroup.POST("/refresh-token", user.RefreshToken(userService, jwtAuth))
 		authGroup.POST("/sign-up", user.SignUp(userService))
 		authGroup.POST("/sign-in", user.SignIn(userService, jwtAuth))
 	}

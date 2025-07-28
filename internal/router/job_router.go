@@ -12,8 +12,8 @@ func JobRouter(r *gin.Engine, jobService service.JobService, jwtAuth service.JWT
 	jobGroup := r.Group("/jobs")
 	jobGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{
-		jobGroup.POST("/post-new-job/", job.PostNewJob(jobService))
-		jobGroup.GET("/available/", job.GetAvailableJobs(jobService))
+		jobGroup.POST("", job.PostNewJob(jobService))
+		jobGroup.GET("", job.GetAvailableJobs(jobService))
 		jobGroup.GET("/my", job.GetMyJobs(jobService))
 		jobGroup.DELETE("/:jobID", job.DeleteJob(jobService))
 		jobGroup.POST("/:jobID/apply", job.ApplyForJob(jobService))

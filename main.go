@@ -31,7 +31,6 @@ import (
 // @in header
 // @name Authorization
 // @description Enter JWT token in format: Bearer {your_token_here}
-
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -60,7 +59,7 @@ func main() {
 	userService := service.NewUserService(userRepo)
 
 	companyRepo := company.NewCompanyRepository(db)
-	companyService := service.NewCompanyService(companyRepo)
+	companyService := service.NewCompanyService(companyRepo, userRepo)
 
 	jobRepo := job.NewJobRepository(db)
 	jobService := service.NewJobService(jobRepo)

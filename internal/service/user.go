@@ -9,6 +9,7 @@ import (
 type UserService interface {
 	CreateUser(ctx context.Context, user *models.User) error
 	FindUserByEmailOrUsername(ctx context.Context, identifier string) (*models.User, error)
+	FindUserByID(ctx context.Context, userID int64) (*models.User, error)
 }
 
 type userService struct {
@@ -32,4 +33,8 @@ func (s *userService) FindUserByEmailOrUsername(ctx context.Context, identifier 
 	}
 
 	return user, nil
+}
+
+func (s *userService) FindUserByID(ctx context.Context, userID int64) (*models.User, error) {
+	return s.userRepo.FindUserByID(ctx, userID)
 }
