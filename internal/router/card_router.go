@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CardRouter(r *gin.Engine, cardService service.CardService, jwtAuth service.JWTAuth) {
+func CardRouter(r gin.IRouter, cardService service.CardService, jwtAuth service.JWTAuth) {
 	cardGroup := r.Group("/cards")
 	cardGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{

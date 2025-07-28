@@ -26,7 +26,7 @@ import (
 // @title MoveShare API
 // @version 1.0
 // @description API для приложения MoveShare
-
+// @BasePath /api
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
@@ -91,12 +91,15 @@ func main() {
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	router.AdminRouter(r, jwtAuth, adminService)
-	router.UserRouter(r, userService, jwtAuth)
-	router.CompanyRouter(r, companyService, jwtAuth)
-	router.JobRouter(r, jobService, jwtAuth)
-	router.TruckRouter(r, truckService, jwtAuth)
-	router.VerificationRouter(r, verificationService, jwtAuth)
+	apiGroup := r.Group("/api")
+	{
+		router.AdminRouter(apiGroup, jwtAuth, adminService)
+		router.UserRouter(apiGroup, userService, jwtAuth)
+		router.CompanyRouter(apiGroup, companyService, jwtAuth)
+		router.JobRouter(apiGroup, jobService, jwtAuth)
+		router.TruckRouter(apiGroup, truckService, jwtAuth)
+		router.VerificationRouter(apiGroup, verificationService, jwtAuth)
+	}
 
 	log.Println("Starting server on :8080")
 	log.Println("Swagger UI available at: http://localhost:8080/swagger/index.html")

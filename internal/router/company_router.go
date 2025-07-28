@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CompanyRouter(r *gin.Engine, companyService service.CompanyService, jwtAuth service.JWTAuth) {
+func CompanyRouter(r gin.IRouter, companyService service.CompanyService, jwtAuth service.JWTAuth) {
 	companyGroup := r.Group("/company")
 	companyGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{

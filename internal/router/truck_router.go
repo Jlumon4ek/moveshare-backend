@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func TruckRouter(r *gin.Engine, truckService service.TruckService, jwtAuth service.JWTAuth) {
+func TruckRouter(r gin.IRouter, truckService service.TruckService, jwtAuth service.JWTAuth) {
 	truckGroup := r.Group("/trucks")
 	truckGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{

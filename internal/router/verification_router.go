@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func VerificationRouter(r *gin.Engine, verificationService service.VerificationService, jwtAuth service.JWTAuth) {
+func VerificationRouter(r gin.IRouter, verificationService service.VerificationService, jwtAuth service.JWTAuth) {
 	verificationGroup := r.Group("/verification")
 	verificationGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{

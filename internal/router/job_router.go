@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func JobRouter(r *gin.Engine, jobService service.JobService, jwtAuth service.JWTAuth) {
+func JobRouter(r gin.IRouter, jobService service.JobService, jwtAuth service.JWTAuth) {
 	jobGroup := r.Group("/jobs")
 	jobGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{

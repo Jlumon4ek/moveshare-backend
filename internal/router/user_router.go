@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func UserRouter(r *gin.Engine, userService service.UserService, jwtAuth service.JWTAuth) {
+func UserRouter(r gin.IRouter, userService service.UserService, jwtAuth service.JWTAuth) {
 	authGroup := r.Group("/auth")
 	{
 		authGroup.POST("/refresh-token", user.RefreshToken(userService, jwtAuth))

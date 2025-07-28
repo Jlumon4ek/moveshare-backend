@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AdminRouter(r *gin.Engine, jwtAuth service.JWTAuth, adminService service.AdminService) {
+func AdminRouter(r gin.IRouter, jwtAuth service.JWTAuth, adminService service.AdminService) {
 	adminGroup := r.Group("/admin")
 	adminGroup.Use(middleware.AdminMiddleware(jwtAuth, adminService))
 	{
