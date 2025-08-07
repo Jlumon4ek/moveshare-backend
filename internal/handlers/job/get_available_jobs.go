@@ -22,7 +22,7 @@ import (
 // @Param        pickup_date_start  query     string  false  "Pickup date start (YYYY-MM-DD)"
 // @Param        pickup_date_end    query     string  false  "Pickup date end (YYYY-MM-DD)"
 // @Param        truck_size         query     string  false  "Truck size (e.g., small, medium, large)"
-// @Router       /jobs/available/ [get]
+// @Router       /jobs/available [get]
 func GetAvailableJobs(jobService service.JobService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, err := utils.GetUserIDFromContext(c)
@@ -63,7 +63,7 @@ func GetAvailableJobs(jobService service.JobService) gin.HandlerFunc {
 			return
 		}
 
-		jobs, err := jobService.GetAvailableJobs(c.Request.Context(), userID, filters, limit, offset)
+		jobs, total, err := jobService.GetAvailableJobs(c.Request.Context(), userID, filters, limit, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to get available jobs",
@@ -79,6 +79,6 @@ func GetAvailableJobs(jobService service.JobService) gin.HandlerFunc {
 			})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"jobs": jobs})
+		c.JSON(http.StatusOK, gin.H{"jobs": jobs, "total": total})
 	}
 }

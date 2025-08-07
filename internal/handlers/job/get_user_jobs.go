@@ -1,6 +1,7 @@
 package job
 
 import (
+	"moveshare/internal/dto"
 	"moveshare/internal/service"
 	"moveshare/internal/utils"
 	"net/http"
@@ -22,7 +23,7 @@ func GetMyJobs(jobService service.JobService) gin.HandlerFunc {
 			return
 		}
 
-		jobs, err := jobService.GetUserJobs(c.Request.Context(), userID)
+		jobModels, err := jobService.GetUserJobs(c.Request.Context(), userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to get user jobs",
@@ -31,13 +32,11 @@ func GetMyJobs(jobService service.JobService) gin.HandlerFunc {
 			return
 		}
 
-		if len(jobs) == 0 {
-			c.JSON(http.StatusOK, gin.H{
-				"jobs":    []string{},
-				"message": "No jobs found for this user",
-			})
-			return
+		var jobs []dto.JobResponse
+		for _, j := range jobModels {
+			jobs = append(jobs, dto.NewJobResponse(j))
 		}
+
 		c.JSON(http.StatusOK, gin.H{"jobs": jobs})
 	}
 }

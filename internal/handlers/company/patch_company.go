@@ -2,7 +2,7 @@ package company
 
 import (
 	"context"
-	"moveshare/internal/models"
+	"moveshare/internal/dto"
 	"moveshare/internal/service"
 	"moveshare/internal/utils"
 	"net/http"
@@ -17,8 +17,8 @@ import (
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param        company  body      models.Company  true  "Данные для обновления компании"
-// @Router       /company/ [patch]
+// @Param        company  body      dto.UpdateCompanyRequest  true  "Данные для обновления компании"
+// @Router       /company/ [put]
 func PatchCompany(service service.CompanyService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, err := utils.GetUserIDFromContext(c)
@@ -27,20 +27,15 @@ func PatchCompany(service service.CompanyService) gin.HandlerFunc {
 			return
 		}
 
-		var company models.Company
-		if err := c.ShouldBindJSON(&company); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   "Invalid request body",
-				"details": err.Error(),
-			})
+		var req dto.UpdateCompanyRequest
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
 			return
 		}
 
-		if err := service.UpdateCompany(context.Background(), userID, &company); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Failed to update company",
-				"details": err.Error(),
-			})
+		if err := service.UpdateCompany(context.Background(), userID, req); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update company", "details": err.Error()})
 			return
 		}
 
