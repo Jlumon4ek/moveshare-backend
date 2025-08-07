@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"moveshare/internal/dto"
 	"moveshare/internal/models"
 	"moveshare/internal/repository"
 	"moveshare/internal/repository/truck"
@@ -14,11 +15,11 @@ type TruckService interface {
 	CreateTruck(ctx context.Context, truck *models.Truck) error
 	DeleteTruck(ctx context.Context, id int64) error
 	GetTruckByID(ctx context.Context, id int64) (*models.Truck, error)
-	GetUserTrucks(ctx context.Context, userID int64) ([]*models.Truck, error)
 	UpdateTruck(ctx context.Context, userID int64, truck *models.Truck) error
 	InsertPhoto(ctx context.Context, truckID int64, objectID string) error
 	GetTruckPhotos(ctx context.Context, truckID int64) ([]string, error)
 	DeleteTruckPhoto(ctx context.Context, truckID int64, photoID string) error
+	GetUserTrucks(ctx context.Context, userID int64) ([]dto.TruckResponse, error)
 }
 
 type truckService struct {
@@ -96,12 +97,13 @@ func (s *truckService) GetTruckByID(ctx context.Context, id int64) (*models.Truc
 
 }
 
-func (s *truckService) GetUserTrucks(ctx context.Context, userID int64) ([]*models.Truck, error) {
+func (s *truckService) GetUserTrucks(ctx context.Context, userID int64) ([]dto.TruckResponse, error) {
 	trucks, err := s.repo.GetUserTrucks(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user trucks: %w", err)
 	}
 
+	var result []dto.TruckResponse
 	for _, truck := range trucks {
 		photoIDs, err := s.repo.GetTruckPhotos(ctx, truck.ID)
 		if err != nil {
@@ -116,10 +118,31 @@ func (s *truckService) GetUserTrucks(ctx context.Context, userID int64) ([]*mode
 			}
 			urls = append(urls, url)
 		}
-		truck.PhotoURLs = urls
+
+		result = append(result, dto.TruckResponse{
+			ID:             truck.ID,
+			TruckName:      truck.TruckName,
+			LicensePlate:   truck.LicensePlate,
+			Make:           truck.Make,
+			Model:          truck.Model,
+			Year:           truck.Year,
+			Color:          truck.Color,
+			Length:         truck.Length,
+			Width:          truck.Width,
+			Height:         truck.Height,
+			MaxWeight:      truck.MaxWeight,
+			TruckType:      truck.TruckType,
+			ClimateControl: truck.ClimateControl,
+			Liftgate:       truck.Liftgate,
+			PalletJack:     truck.PalletJack,
+			SecuritySystem: truck.SecuritySystem,
+			Refrigerated:   truck.Refrigerated,
+			FurniturePads:  truck.FurniturePads,
+			PhotoURLs:      urls,
+		})
 	}
 
-	return trucks, nil
+	return result, nil
 }
 
 func (s *truckService) UpdateTruck(ctx context.Context, userID int64, truck *models.Truck) error {

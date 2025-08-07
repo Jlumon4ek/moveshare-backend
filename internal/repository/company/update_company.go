@@ -5,30 +5,42 @@ import (
 	"moveshare/internal/models"
 )
 
-func (r *repository) UpdateCompany(ctx context.Context, userID int64, company *models.Company) error {
+func (r *repository) UpdateCompany(ctx context.Context, userID int64, c *models.Company) error {
 	query := `
 		INSERT INTO companies (
-			user_id, company_name, address, state, mc_license_number,
-			company_description, contact_person, phone_number, city, zip_code, dot_number
+			user_id, company_name, address, state, mc_license_number, 
+			company_description, contact_person, phone_number, city, zip_code, dot_number, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5,
+			$6, $7, $8, $9, $10, $11, now(), now()
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-		ON CONFLICT (user_id) DO UPDATE
-		SET company_name = COALESCE($2, companies.company_name),
-			address = COALESCE($3, companies.address),
-			state = COALESCE($4, companies.state),
-			mc_license_number = COALESCE($5, companies.mc_license_number),
-			company_description = COALESCE($6, companies.company_description),
-			contact_person = COALESCE($7, companies.contact_person),
-			phone_number = COALESCE($8, companies.phone_number),
-			city = COALESCE($9, companies.city),
-			zip_code = COALESCE($10, companies.zip_code),
-			dot_number = COALESCE($11, companies.dot_number),
-			updated_at = NOW()
+		ON CONFLICT (user_id) DO UPDATE SET
+			company_name = EXCLUDED.company_name,
+			address = EXCLUDED.address,
+			state = EXCLUDED.state,
+			mc_license_number = EXCLUDED.mc_license_number,
+			company_description = EXCLUDED.company_description,
+			contact_person = EXCLUDED.contact_person,
+			phone_number = EXCLUDED.phone_number,
+			city = EXCLUDED.city,
+			zip_code = EXCLUDED.zip_code,
+			dot_number = EXCLUDED.dot_number,
+			updated_at = now()
 	`
+
 	_, err := r.db.Exec(ctx, query,
-		userID, company.CompanyName, company.Address, company.State,
-		company.MCLicenseNumber, company.CompanyDescription, company.ContactPerson,
-		company.PhoneNumber, company.City, company.ZipCode, company.DotNumber,
+		userID,
+		c.CompanyName,
+		c.Address,
+		c.State,
+		c.MCLicenseNumber,
+		c.CompanyDescription,
+		c.ContactPerson,
+		c.PhoneNumber,
+		c.City,
+		c.ZipCode,
+		c.DotNumber,
 	)
+
 	return err
 }

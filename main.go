@@ -6,6 +6,7 @@ import (
 	"moveshare/internal/config"
 	"moveshare/internal/repository"
 	"moveshare/internal/repository/admin"
+	"moveshare/internal/repository/chat"
 	"moveshare/internal/repository/company"
 	"moveshare/internal/repository/job"
 	"moveshare/internal/repository/truck"
@@ -15,6 +16,9 @@ import (
 	"moveshare/internal/router"
 	"moveshare/internal/service"
 
+	chathandlers "moveshare/internal/handlers/chat"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	swaggerFiles "github.com/swaggo/files"
@@ -74,20 +78,38 @@ func main() {
 	verificationRepo := verification.NewVerificationRepository(db)
 	verificationService := service.NewVerificationService(verificationRepo, minioRepo)
 
+	chatRepo := chat.NewChatRepository(db)
+	chatService := service.NewChatService(chatRepo)
+
+	chatHub := chathandlers.NewHub(chatService)
+	go chatHub.Run()
 	r := gin.Default()
 
-	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{
+		"http://localhost:3000",
+		"http://localhost:5173", // Vite
+		"http://127.0.0.1:5173",
+		"http://127.0.0.1:3000",
+	}
+	config.AllowHeaders = []string{
+		"Origin",
+		"Content-Type",
+		"Accept",
+		"Authorization",
+		"X-Requested-With",
+	}
+	config.AllowMethods = []string{
+		"GET",
+		"POST",
+		"PUT",
+		"PATCH",
+		"DELETE",
+		"OPTIONS",
+	}
+	config.AllowCredentials = true
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	})
+	r.Use(cors.New(config))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -99,6 +121,7 @@ func main() {
 		router.JobRouter(apiGroup, jobService, jwtAuth)
 		router.TruckRouter(apiGroup, truckService, jwtAuth)
 		router.VerificationRouter(apiGroup, verificationService, jwtAuth)
+		router.ChatRouter(apiGroup, chatService, jwtAuth, chatHub)
 	}
 
 	log.Println("Starting server on :8080")

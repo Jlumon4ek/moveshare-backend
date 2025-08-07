@@ -10,6 +10,7 @@ type Config struct {
 	Database DatabaseConfig
 	Minio    MinioConfig
 	Stripe   StripeConfig
+	Email    EmailConfig
 }
 
 type MinioConfig struct {
@@ -28,6 +29,11 @@ type StripeConfig struct {
 	PublicKey     string
 	PrivateKey    string
 	RestrictedKey string
+}
+
+type EmailConfig struct {
+	SendPulseID     string
+	SendPulseSecret string
 }
 
 func Load() (*Config, error) {
@@ -100,5 +106,18 @@ func loadStripeConfig() (*StripeConfig, error) {
 		PublicKey:     publicKey,
 		PrivateKey:    privateKey,
 		RestrictedKey: restrictedKey,
+	}, nil
+}
+
+func loadEmailConfig() (*EmailConfig, error) {
+	sendPulseID := os.Getenv("SENDPULSE_ID")
+	sendPulseSecret := os.Getenv("SENDPULSE_SECRET_KEY")
+
+	if sendPulseID == "" || sendPulseSecret == "" {
+		return nil, fmt.Errorf("missing required SendPulse environment variables")
+	}
+	return &EmailConfig{
+		SendPulseID:     sendPulseID,
+		SendPulseSecret: sendPulseSecret,
 	}, nil
 }

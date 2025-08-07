@@ -13,6 +13,6 @@ func CompanyRouter(r gin.IRouter, companyService service.CompanyService, jwtAuth
 	companyGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{
 		companyGroup.GET("/", company.GetCompany(companyService))
-		companyGroup.PATCH("/", company.PatchCompany(companyService))
+		companyGroup.PUT("/", company.PatchCompany(companyService))
 	}
 }

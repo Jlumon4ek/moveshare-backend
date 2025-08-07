@@ -18,7 +18,7 @@ func (r *repository) GetAvailableJobs(ctx context.Context, userID int64, filters
 		       assembly_required, extra_insurance, additional_packing, 
 		       status, created_at, updated_at, distance_miles
 		FROM jobs 
-		WHERE user_id != $1 AND status = 'available'`
+		WHERE user_id != $1`
 
 	args := []interface{}{userID}
 	argIndex := 2

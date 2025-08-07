@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"moveshare/internal/dto"
 	"moveshare/internal/models"
 	"moveshare/internal/repository/company"
 	"moveshare/internal/repository/user"
@@ -10,7 +11,7 @@ import (
 
 type CompanyService interface {
 	GetCompany(ctx context.Context, userID int64) (*models.Company, error)
-	UpdateCompany(ctx context.Context, userID int64, company *models.Company) error
+	UpdateCompany(ctx context.Context, userID int64, req dto.UpdateCompanyRequest) error
 }
 
 type companyService struct {
@@ -28,22 +29,31 @@ func NewCompanyService(companyRepo company.CompanyRepository, userRepo user.User
 func (s *companyService) GetCompany(ctx context.Context, userID int64) (*models.Company, error) {
 	company, err := s.companyRepo.GetCompany(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get company: %w", err)
 	}
 
-	if company == nil {
-		user, err := s.userRepo.FindUserByID(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch user: %w", err)
-		}
-		company = &models.Company{
-			EmailAddress: user.Email,
-		}
+	if company == nil || company.ID == 0 {
+		return &models.Company{
+			EmailAddress: company.EmailAddress,
+		}, nil
 	}
 
 	return company, nil
 }
 
-func (s *companyService) UpdateCompany(ctx context.Context, userID int64, company *models.Company) error {
+func (s *companyService) UpdateCompany(ctx context.Context, userID int64, req dto.UpdateCompanyRequest) error {
+	company := &models.Company{
+		CompanyName:        req.CompanyName,
+		Address:            req.Address,
+		State:              req.State,
+		MCLicenseNumber:    req.MCLicenseNumber,
+		CompanyDescription: req.CompanyDescription,
+		ContactPerson:      req.ContactPerson,
+		PhoneNumber:        req.PhoneNumber,
+		City:               req.City,
+		ZipCode:            req.ZipCode,
+		DotNumber:          req.DotNumber,
+	}
+
 	return s.companyRepo.UpdateCompany(ctx, userID, company)
 }

@@ -15,6 +15,7 @@ type JobRepository interface {
 	GetMyApplications(ctx context.Context, userID int64) ([]models.Job, error)
 	GetUserJobs(ctx context.Context, userID int64) ([]models.Job, error)
 	ChangeJobStatus(ctx context.Context, jobID int64, status string) error
+	GetTotalJobCount(ctx context.Context, userID int64) (int64, error)
 }
 
 type repository struct {
