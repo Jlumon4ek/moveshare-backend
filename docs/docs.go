@@ -9,22 +9,57 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "API Support",
-            "email": "support@moveshare.com"
-        },
-        "license": {
-            "name": "MIT"
-        },
+        "contact": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/jobs": {
-            "post": {
-                "description": "Creates a new job posting",
+        "/admin/conversations/count": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Gets the total number of chat conversations in the system",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get total chat conversation count",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/user/{userID}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Changes the status of a user by their ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -32,25 +67,38 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "jobs"
+                    "Admin"
                 ],
-                "summary": "Create a new job",
+                "summary": "Change user status",
                 "parameters": [
                     {
-                        "description": "Job creation data",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.JobRequest"
-                        }
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "Approved",
+                            "Rejected",
+                            "Pending"
+                        ],
+                        "type": "string",
+                        "description": "New status for the user",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.JobResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "400": {
@@ -74,9 +122,144 @@ const docTemplate = `{
                 }
             }
         },
-        "/sign-in": {
+        "/admin/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Gets a paginated list of users with limit and offset",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get list of users",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Limit number of users returned",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.User"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/count": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Gets the total number of users in the system",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get total user count",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/verification/file/{fileID}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Администратор изменяет статус конкретного файла верификации пользователя",
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Изменить статус файла верификации",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID файла",
+                        "name": "fileID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "Approved",
+                            "Rejected",
+                            "Pending"
+                        ],
+                        "type": "string",
+                        "description": "Новый статус (например, approved, rejected)",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/auth/refresh-token": {
             "post": {
-                "description": "Authenticates a user and returns user details with access and refresh tokens",
+                "description": "Validates refresh token and returns a new access token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -84,25 +267,137 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "Auth"
                 ],
-                "summary": "Login a user",
+                "summary": "Refresh access token",
                 "parameters": [
                     {
-                        "description": "User login data",
+                        "description": "Refresh token payload",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.SignInRequest"
+                            "$ref": "#/definitions/user.RefreshTokenRequest"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "user_id and access_token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired refresh token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/sign-in": {
+            "post": {
+                "description": "Authenticates user with email/username and password, returns JWT tokens",
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Authenticate user",
+                "parameters": [
+                    {
+                        "description": "User login data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SignInRequest"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/auth/sign-up": {
+            "post": {
+                "description": "Creates a new user account with username, email and password",
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "User registration data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SignUpRequest"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/chats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a list of all chats for the authenticated user with preview of last message",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Get user chats",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit number of chats returned",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.SignInResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -135,9 +430,117 @@ const docTemplate = `{
                 }
             }
         },
-        "/sign-up": {
+        "/chats/{chatId}/messages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns messages for a specific chat with pagination",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Get chat messages",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "chatId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Limit number of messages returned",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Order of messages",
+                        "name": "order",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
-                "description": "Creates a new user account",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sends a new message to the specified chat",
                 "consumes": [
                     "application/json"
                 ],
@@ -145,17 +548,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "Chat"
                 ],
-                "summary": "Register a new user",
+                "summary": "Send message to chat",
                 "parameters": [
                     {
-                        "description": "User registration data",
-                        "name": "body",
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "chatId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Message data",
+                        "name": "message",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.SignUpRequest"
+                            "$ref": "#/definitions/chat.SendMessageRequest"
                         }
                     }
                 ],
@@ -163,11 +573,38 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/handlers.SignUpResponse"
+                            "$ref": "#/definitions/chat.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -186,146 +623,781 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/chats/{chatId}/ws": {
+            "get": {
+                "description": "Establishes WebSocket connection for real-time chat messaging",
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "WebSocket connection for chat",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "chatId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "JWT token for authentication",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/company/": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает компанию, связанную с текущим пользователем",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Company"
+                ],
+                "summary": "Получить информацию о компании",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CompanyResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Частично обновляет компанию, связанную с текущим пользователем",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Company"
+                ],
+                "summary": "Обновить информацию о компании",
+                "parameters": [
+                    {
+                        "description": "Данные для обновления компании",
+                        "name": "company",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateCompanyRequest"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/jobs/available-jobs/": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all active jobs for the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Jobs"
+                ],
+                "summary": "Get active jobs",
+                "responses": {
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/jobs.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/jobs.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/payment/cards": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Adds a new payment card for the authenticated user using Stripe Payment Method",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payment"
+                ],
+                "summary": "Add a payment card",
+                "parameters": [
+                    {
+                        "description": "Payment method data",
+                        "name": "card",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AddCardRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.AddCardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/trucks/": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all trucks associated with the authenticated user.",
+                "tags": [
+                    "Trucks"
+                ],
+                "summary": "Get trucks for the authenticated user",
+                "responses": {}
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a truck associated with the authenticated user and uploads photos.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "tags": [
+                    "Trucks"
+                ],
+                "summary": "Create a new truck",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Truck Name",
+                        "name": "truck_name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "License Plate",
+                        "name": "license_plate",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Make",
+                        "name": "make",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Model",
+                        "name": "model",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Color",
+                        "name": "color",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Length (ft)",
+                        "name": "length",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Width (ft)",
+                        "name": "width",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Height (ft)",
+                        "name": "height",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Max Weight (lbs)",
+                        "name": "max_weight",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "Small",
+                            "Medium",
+                            "Large"
+                        ],
+                        "type": "string",
+                        "description": "Truck Type",
+                        "name": "truck_type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Climate Control",
+                        "name": "climate_control",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Liftgate",
+                        "name": "liftgate",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Pallet Jack",
+                        "name": "pallet_jack",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Security System",
+                        "name": "security_system",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Refrigerated",
+                        "name": "refrigerated",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Furniture Pads",
+                        "name": "furniture_pads",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "file"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Truck photo(s)",
+                        "name": "photo",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/trucks/{truckId}/": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a truck by its ID",
+                "tags": [
+                    "Trucks"
+                ],
+                "summary": "Get truck by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Truck ID",
+                        "name": "truckId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a truck by its ID",
+                "tags": [
+                    "Trucks"
+                ],
+                "summary": "Delete a truck",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Truck ID",
+                        "name": "truckId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/verification/": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Uploads a verification file associated with the authenticated user.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "tags": [
+                    "Verification"
+                ],
+                "summary": "Create a new verification file",
+                "parameters": [
+                    {
+                        "enum": [
+                            "MC License",
+                            "DOT Certificate",
+                            "Insurance Certificate",
+                            "Business License"
+                        ],
+                        "type": "string",
+                        "description": "File Type",
+                        "name": "fileType",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Verification file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/verification/files": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список файлов, загруженных пользователем для верификации",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Verification"
+                ],
+                "summary": "Получить файлы верификации пользователя",
+                "responses": {
+                    "200": {
+                        "description": "Список файлов",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.VerificationFile"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "handlers.JobRequest": {
+        "chat.SendMessageRequest": {
             "type": "object",
+            "required": [
+                "message_text"
+            ],
             "properties": {
-                "additional_packing": {
-                    "type": "boolean"
+                "message_text": {
+                    "type": "string",
+                    "example": "Привет! Интересует ваше предложение."
                 },
-                "assembly_required": {
-                    "type": "boolean"
-                },
-                "cargo_type": {
-                    "type": "string"
-                },
-                "climate_control": {
-                    "type": "boolean"
-                },
-                "delivery_date": {
-                    "type": "string"
-                },
-                "delivery_location": {
-                    "type": "string"
-                },
-                "delivery_time_window": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "early_delivery_bonus": {
-                    "type": "number"
-                },
-                "extra_insurance": {
-                    "type": "boolean"
-                },
-                "fragile_items": {
-                    "type": "boolean"
-                },
-                "job_title": {
-                    "type": "string"
-                },
-                "liftgate": {
-                    "type": "boolean"
-                },
-                "loading_assistance": {
-                    "type": "boolean"
-                },
-                "payment_terms": {
-                    "type": "string"
-                },
-                "payout_amount": {
-                    "type": "number"
-                },
-                "pickup_date": {
-                    "type": "string"
-                },
-                "pickup_location": {
-                    "type": "string"
-                },
-                "pickup_time_window": {
-                    "type": "string"
-                },
-                "truck_size": {
-                    "type": "string"
-                },
-                "urgency": {
-                    "type": "string"
-                },
-                "volume_cu_ft": {
-                    "type": "number"
-                },
-                "weight_lb": {
-                    "type": "number"
+                "message_type": {
+                    "type": "string",
+                    "example": "text"
                 }
             }
         },
-        "handlers.JobResponse": {
+        "chat.SendMessageResponse": {
             "type": "object",
             "properties": {
+                "message": {
+                    "$ref": "#/definitions/models.ChatMessageResponse"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.CompanyResponse": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "example": "123 Main St"
+                },
+                "city": {
+                    "type": "string",
+                    "example": "Los Angeles"
+                },
+                "company_description": {
+                    "type": "string",
+                    "example": "A brief description of the company"
+                },
+                "company_name": {
+                    "type": "string",
+                    "example": "Example Company"
+                },
+                "contact_person": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "dot_number": {
+                    "type": "string",
+                    "example": "DOT1234567"
+                },
+                "email_address": {
+                    "type": "string",
+                    "example": "example@company.com"
+                },
+                "mc_license_number": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "(123) 456-7890"
+                },
+                "state": {
+                    "type": "string",
+                    "example": "CA"
+                },
+                "zip_code": {
+                    "type": "string",
+                    "example": "90001"
+                }
+            }
+        },
+        "dto.UpdateCompanyRequest": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "example": "123 Main St"
+                },
+                "city": {
+                    "type": "string",
+                    "example": "Los Angeles"
+                },
+                "company_description": {
+                    "type": "string",
+                    "example": "A short description"
+                },
+                "company_name": {
+                    "type": "string",
+                    "example": "Example Company"
+                },
+                "contact_person": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "dot_number": {
+                    "type": "string",
+                    "example": "DOT1234567"
+                },
+                "mc_license_number": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "(123) 456-7890"
+                },
+                "state": {
+                    "type": "string",
+                    "example": "CA"
+                },
+                "zip_code": {
+                    "type": "string",
+                    "example": "90001"
+                }
+            }
+        },
+        "jobs.HTTPError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.AddCardRequest": {
+            "type": "object",
+            "required": [
+                "payment_method_id"
+            ],
+            "properties": {
+                "payment_method_id": {
+                    "type": "string",
+                    "example": "pm_1234567890"
+                }
+            }
+        },
+        "models.AddCardResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "payment_method": {
+                    "$ref": "#/definitions/models.PaymentMethodResponse"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.ChatMessageResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
-                "message": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.SignInRequest": {
-            "type": "object",
-            "properties": {
-                "email": {
+                "is_from_me": {
+                    "type": "boolean"
+                },
+                "is_read": {
+                    "type": "boolean"
+                },
+                "message_text": {
                     "type": "string"
                 },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.SignInResponse": {
-            "type": "object",
-            "properties": {
-                "access_token": {
+                "message_type": {
                     "type": "string"
                 },
-                "email": {
+                "read_at": {
                     "type": "string"
                 },
-                "refresh_token": {
-                    "type": "string"
-                },
-                "user_id": {
+                "sender_id": {
                     "type": "integer"
                 },
-                "username": {
+                "sender_name": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "handlers.SignUpRequest": {
+        "models.PaymentMethodResponse": {
+            "type": "object",
+            "properties": {
+                "card_brand": {
+                    "type": "string"
+                },
+                "card_exp_month": {
+                    "type": "integer"
+                },
+                "card_exp_year": {
+                    "type": "integer"
+                },
+                "card_last4": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_default": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.SignInRequest": {
+            "type": "object",
+            "properties": {
+                "identifier": {
+                    "type": "string",
+                    "example": "Sabalaq"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "Lineage6_"
+                }
+            }
+        },
+        "models.SignUpRequest": {
             "type": "object",
             "properties": {
                 "email": {
+                    "type": "string",
+                    "example": "zhanseriknurym@gmail.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "Lineage6_"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "Sabalaq"
+                }
+            }
+        },
+        "models.User": {
+            "type": "object",
+            "properties": {
+                "created_at": {
                     "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
                 },
                 "password": {
                     "type": "string"
                 },
+                "role": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
                 "username": {
                     "type": "string"
                 }
             }
         },
-        "handlers.SignUpResponse": {
+        "models.VerificationFile": {
             "type": "object",
             "properties": {
-                "message": {
+                "fileType": {
+                    "type": "string"
+                },
+                "objectName": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "url": {
                     "type": "string"
                 }
             }
+        },
+        "user.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Enter JWT token in format: Bearer {your_token_here}",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
@@ -333,11 +1405,11 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
-	BasePath:         "/api/v1",
+	Host:             "",
+	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "MoveShare API",
-	Description:      "API for user authentication and job management in MoveShare application",
+	Description:      "API для приложения MoveShare",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

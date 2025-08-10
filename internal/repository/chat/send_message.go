@@ -77,9 +77,6 @@ func (r *repository) SendMessage(ctx context.Context, message *models.ChatMessag
 		return nil, err
 	}
 
-	// ✅ ИСПРАВЛЕНИЕ: НЕ устанавливаем is_from_me в репозитории!
-	// Это будет устанавливаться в зависимости от контекста в handler'е
-
 	// Коммитим транзакцию
 	if err = tx.Commit(ctx); err != nil {
 		return nil, err

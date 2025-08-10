@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ChatRouter(r gin.IRouter, chatService service.ChatService, jobService service.JobService, jwtAuth service.JWTAuth, hub *chat.Hub) {
+func SetupChatRoutes(r gin.IRouter, chatService service.ChatService, jobService service.JobService, jwtAuth service.JWTAuth, hub *chat.Hub) {
 	chatGroup := r.Group("/chats")
 	chatGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{

@@ -16,7 +16,7 @@ func (r *repository) CreateChat(ctx context.Context, jobID, clientID, contractor
 	var actualClientID, actualContractorID int64
 
 	// Получаем информацию о задании, чтобы понять кто клиент
-	jobOwnerQuery := `SELECT user_id FROM jobs WHERE id = $1`
+	jobOwnerQuery := `SELECT contractor_id FROM jobs WHERE id = $1`
 	var jobOwnerID int64
 	err = tx.QueryRow(ctx, jobOwnerQuery, jobID).Scan(&jobOwnerID)
 	if err != nil {

@@ -28,10 +28,10 @@ type ChatMessage struct {
 type ChatListItem struct {
 	ID              int64     `json:"id"`
 	JobID           int64     `json:"job_id"`
-	JobTitle        string    `json:"job_title"`
+	JobType         string    `json:"job_type"`
 	OtherUserID     int64     `json:"other_user_id"`
 	OtherUserName   string    `json:"other_user_name"`
-	OtherUserRole   string    `json:"other_user_role"` // client, contractor
+	OtherUserRole   string    `json:"other_user_role"`
 	LastMessage     string    `json:"last_message"`
 	LastMessageTime time.Time `json:"last_message_time"`
 	LastMessageType string    `json:"last_message_type"`

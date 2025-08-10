@@ -4,11 +4,11 @@ import (
 	"context"
 	"log"
 	"moveshare/internal/config"
+	"moveshare/internal/handlers"
+	"moveshare/internal/handlers/chat"
 	"moveshare/internal/repository"
-	"moveshare/internal/repository/admin"
-	"moveshare/internal/repository/chat"
+	chatRepo "moveshare/internal/repository/chat"
 	"moveshare/internal/repository/company"
-	"moveshare/internal/repository/job"
 	"moveshare/internal/repository/payment"
 	"moveshare/internal/repository/truck"
 	"moveshare/internal/repository/user"
@@ -16,8 +16,6 @@ import (
 
 	"moveshare/internal/router"
 	"moveshare/internal/service"
-
-	chathandlers "moveshare/internal/handlers/chat"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -57,8 +55,8 @@ func main() {
 		log.Fatalf("failed to initialize JWT auth: %v", err)
 	}
 
-	adminRepo := admin.NewAdminRepository(db)
-	adminService := service.NewAdminService(adminRepo)
+	// adminRepo := admin.NewAdminRepository(db)
+	// adminService := service.NewAdminService(adminRepo)
 
 	userRepo := user.NewUserRepository(db)
 	userService := service.NewUserService(userRepo)
@@ -73,9 +71,6 @@ func main() {
 	truckRepo := truck.NewTruckRepository(db)
 	truckService := service.NewTruckService(truckRepo, minioRepo)
 
-	jobRepo := job.NewJobRepository(db)
-	jobService := service.NewJobService(jobRepo, minioRepo)
-
 	verificationRepo := verification.NewVerificationRepository(db)
 	verificationService := service.NewVerificationService(verificationRepo, minioRepo)
 
@@ -84,11 +79,6 @@ func main() {
 	paymentRepo := payment.NewPaymentRepository(db)
 	paymentService := service.NewPaymentService(paymentRepo, stripeService, userService)
 
-	chatRepo := chat.NewChatRepository(db)
-	chatService := service.NewChatService(chatRepo)
-
-	chatHub := chathandlers.NewHub(chatService)
-	go chatHub.Run()
 	r := gin.Default()
 
 	config := cors.DefaultConfig()
@@ -119,17 +109,34 @@ func main() {
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	jobRepo := repository.NewJobRepository(db)
+	jobService := service.NewJobService(jobRepo)
+	jobHandler := handlers.NewJobHandler(jobService)
+
+	locationRepo := repository.NewLocationRepository(db)
+	locationService := service.NewLocationService(locationRepo)
+	locationHandler := handlers.NewLocationHandler(locationService)
+
+	chatRepo := chatRepo.NewChatRepository(db)
+	chatService := service.NewChatService(chatRepo)
+
+	// Инициализация WebSocket hub
+	hub := chat.NewHub(chatService)
+	go hub.Run()
+
+	// Добавь после routes.SetupLocationRoutes:
+
 	apiGroup := r.Group("/api")
 	{
-		router.AdminRouter(apiGroup, jwtAuth, adminService)
+		// router.AdminRouter(apiGroup, jwtAuth, adminService)
 		router.UserRouter(apiGroup, userService, jwtAuth)
 		router.CompanyRouter(apiGroup, companyService, jwtAuth)
-		router.JobRouter(apiGroup, jobService, jwtAuth)
 		router.TruckRouter(apiGroup, truckService, jwtAuth)
 		router.VerificationRouter(apiGroup, verificationService, jwtAuth)
-		router.ChatRouter(apiGroup, chatService, jobService, jwtAuth, chatHub) // ✅ Передаем jobService
-		router.PaymentRouter(apiGroup, paymentService, jwtAuth)                // ✅ Добавить
-
+		router.PaymentRouter(apiGroup, paymentService, jwtAuth) // ✅ Добавить
+		router.SetupJobRoutes(apiGroup, jobHandler, jwtAuth)
+		router.SetupLocationRoutes(apiGroup, locationHandler)
+		router.SetupChatRoutes(apiGroup, chatService, *jobService, jwtAuth, hub)
 	}
 
 	log.Println("Starting server on :8080")

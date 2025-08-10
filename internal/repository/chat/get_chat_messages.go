@@ -6,7 +6,6 @@ import (
 )
 
 func (r *repository) GetChatMessages(ctx context.Context, chatID, userID int64, limit, offset int, order string) ([]models.ChatMessageResponse, int, error) {
-	// Сначала получаем общее количество сообщений
 	totalQuery := `
 		SELECT COUNT(*)
 		FROM chat_messages cm
@@ -19,13 +18,11 @@ func (r *repository) GetChatMessages(ctx context.Context, chatID, userID int64, 
 		return nil, 0, err
 	}
 
-	// Определяем направление сортировки
 	orderClause := "ORDER BY cm.created_at DESC"
 	if order == "asc" {
 		orderClause = "ORDER BY cm.created_at ASC"
 	}
 
-	// Основной запрос для получения сообщений
 	query := `
 		SELECT 
 			cm.id,

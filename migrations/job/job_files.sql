@@ -1,0 +1,5 @@
+CREATE TABLE JOB_FILES (
+    id SERIAL PRIMARY KEY,
+    job_id BIGINT NOT NULL REFERENCES jobs(id),
+    file_id TEXT NOT NULL
+);

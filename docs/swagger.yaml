@@ -1,126 +1,270 @@
-basePath: /api/v1
+basePath: /api
 definitions:
-  handlers.JobRequest:
+  chat.SendMessageRequest:
     properties:
-      additional_packing:
-        type: boolean
-      assembly_required:
-        type: boolean
-      cargo_type:
+      message_text:
+        example: Привет! Интересует ваше предложение.
         type: string
-      climate_control:
-        type: boolean
-      delivery_date:
+      message_type:
+        example: text
         type: string
-      delivery_location:
-        type: string
-      delivery_time_window:
-        type: string
-      description:
-        type: string
-      early_delivery_bonus:
-        type: number
-      extra_insurance:
-        type: boolean
-      fragile_items:
-        type: boolean
-      job_title:
-        type: string
-      liftgate:
-        type: boolean
-      loading_assistance:
-        type: boolean
-      payment_terms:
-        type: string
-      payout_amount:
-        type: number
-      pickup_date:
-        type: string
-      pickup_location:
-        type: string
-      pickup_time_window:
-        type: string
-      truck_size:
-        type: string
-      urgency:
-        type: string
-      volume_cu_ft:
-        type: number
-      weight_lb:
-        type: number
+    required:
+    - message_text
     type: object
-  handlers.JobResponse:
+  chat.SendMessageResponse:
     properties:
+      message:
+        $ref: '#/definitions/models.ChatMessageResponse'
+      success:
+        type: boolean
+    type: object
+  dto.CompanyResponse:
+    properties:
+      address:
+        example: 123 Main St
+        type: string
+      city:
+        example: Los Angeles
+        type: string
+      company_description:
+        example: A brief description of the company
+        type: string
+      company_name:
+        example: Example Company
+        type: string
+      contact_person:
+        example: John Doe
+        type: string
+      dot_number:
+        example: DOT1234567
+        type: string
+      email_address:
+        example: example@company.com
+        type: string
+      mc_license_number:
+        example: "123456"
+        type: string
+      phone_number:
+        example: (123) 456-7890
+        type: string
+      state:
+        example: CA
+        type: string
+      zip_code:
+        example: "90001"
+        type: string
+    type: object
+  dto.UpdateCompanyRequest:
+    properties:
+      address:
+        example: 123 Main St
+        type: string
+      city:
+        example: Los Angeles
+        type: string
+      company_description:
+        example: A short description
+        type: string
+      company_name:
+        example: Example Company
+        type: string
+      contact_person:
+        example: John Doe
+        type: string
+      dot_number:
+        example: DOT1234567
+        type: string
+      mc_license_number:
+        example: "123456"
+        type: string
+      phone_number:
+        example: (123) 456-7890
+        type: string
+      state:
+        example: CA
+        type: string
+      zip_code:
+        example: "90001"
+        type: string
+    type: object
+  jobs.HTTPError:
+    properties:
+      error:
+        type: string
+    type: object
+  models.AddCardRequest:
+    properties:
+      payment_method_id:
+        example: pm_1234567890
+        type: string
+    required:
+    - payment_method_id
+    type: object
+  models.AddCardResponse:
+    properties:
+      message:
+        type: string
+      payment_method:
+        $ref: '#/definitions/models.PaymentMethodResponse'
+      success:
+        type: boolean
+    type: object
+  models.ChatMessageResponse:
+    properties:
+      created_at:
+        type: string
       id:
         type: integer
-      message:
+      is_from_me:
+        type: boolean
+      is_read:
+        type: boolean
+      message_text:
+        type: string
+      message_type:
+        type: string
+      read_at:
+        type: string
+      sender_id:
+        type: integer
+      sender_name:
+        type: string
+      updated_at:
         type: string
     type: object
-  handlers.SignInRequest:
+  models.PaymentMethodResponse:
     properties:
-      email:
+      card_brand:
+        type: string
+      card_exp_month:
+        type: integer
+      card_exp_year:
+        type: integer
+      card_last4:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_default:
+        type: boolean
+    type: object
+  models.SignInRequest:
+    properties:
+      identifier:
+        example: Sabalaq
         type: string
       password:
+        example: Lineage6_
         type: string
     type: object
-  handlers.SignInResponse:
+  models.SignUpRequest:
     properties:
-      access_token:
+      email:
+        example: zhanseriknurym@gmail.com
+        type: string
+      password:
+        example: Lineage6_
+        type: string
+      username:
+        example: Sabalaq
+        type: string
+    type: object
+  models.User:
+    properties:
+      created_at:
         type: string
       email:
         type: string
+      id:
+        type: integer
+      password:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  models.VerificationFile:
+    properties:
+      fileType:
+        type: string
+      objectName:
+        type: string
+      status:
+        type: string
+      url:
+        type: string
+    type: object
+  user.RefreshTokenRequest:
+    properties:
       refresh_token:
         type: string
-      user_id:
-        type: integer
-      username:
-        type: string
+    required:
+    - refresh_token
     type: object
-  handlers.SignUpRequest:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-      username:
-        type: string
-    type: object
-  handlers.SignUpResponse:
-    properties:
-      message:
-        type: string
-    type: object
-host: localhost:8080
 info:
-  contact:
-    email: support@moveshare.com
-    name: API Support
-  description: API for user authentication and job management in MoveShare application
-  license:
-    name: MIT
-  termsOfService: http://swagger.io/terms/
+  contact: {}
+  description: API для приложения MoveShare
   title: MoveShare API
   version: "1.0"
 paths:
-  /jobs:
-    post:
-      consumes:
-      - application/json
-      description: Creates a new job posting
-      parameters:
-      - description: Job creation data
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.JobRequest'
+  /admin/conversations/count:
+    get:
+      description: Gets the total number of chat conversations in the system
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
           schema:
-            $ref: '#/definitions/handlers.JobResponse'
+            additionalProperties:
+              type: integer
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get total chat conversation count
+      tags:
+      - Admin
+  /admin/user/{userID}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Changes the status of a user by their ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: New status for the user
+        enum:
+        - Approved
+        - Rejected
+        - Pending
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -133,29 +277,191 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Create a new job
+      security:
+      - BearerAuth: []
+      summary: Change user status
       tags:
-      - jobs
-  /sign-in:
-    post:
-      consumes:
-      - application/json
-      description: Authenticates a user and returns user details with access and refresh
-        tokens
+      - Admin
+  /admin/users:
+    get:
+      description: Gets a paginated list of users with limit and offset
       parameters:
-      - description: User login data
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.SignInRequest'
+      - default: 10
+        description: Limit number of users returned
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.SignInResponse'
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get list of users
+      tags:
+      - Admin
+  /admin/users/count:
+    get:
+      description: Gets the total number of users in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get total user count
+      tags:
+      - Admin
+  /admin/verification/file/{fileID}/status:
+    patch:
+      description: Администратор изменяет статус конкретного файла верификации пользователя
+      parameters:
+      - description: ID файла
+        in: path
+        name: fileID
+        required: true
+        type: integer
+      - description: Новый статус (например, approved, rejected)
+        enum:
+        - Approved
+        - Rejected
+        - Pending
+        in: query
+        name: status
+        required: true
+        type: string
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Изменить статус файла верификации
+      tags:
+      - Admin
+  /auth/refresh-token:
+    post:
+      consumes:
+      - application/json
+      description: Validates refresh token and returns a new access token.
+      parameters:
+      - description: Refresh token payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user_id and access_token
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid or expired refresh token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh access token
+      tags:
+      - Auth
+  /auth/sign-in:
+    post:
+      description: Authenticates user with email/username and password, returns JWT
+        tokens
+      parameters:
+      - description: User login data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.SignInRequest'
+      responses: {}
+      summary: Authenticate user
+      tags:
+      - Auth
+  /auth/sign-up:
+    post:
+      description: Creates a new user account with username, email and password
+      parameters:
+      - description: User registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.SignUpRequest'
+      responses: {}
+      summary: Register a new user
+      tags:
+      - Auth
+  /chats:
+    get:
+      description: Returns a list of all chats for the authenticated user with preview
+        of last message
+      parameters:
+      - default: 20
+        description: Limit number of chats returned
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -174,30 +480,66 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Login a user
+      security:
+      - BearerAuth: []
+      summary: Get user chats
       tags:
-      - auth
-  /sign-up:
-    post:
-      consumes:
-      - application/json
-      description: Creates a new user account
+      - Chat
+  /chats/{chatId}/messages:
+    get:
+      description: Returns messages for a specific chat with pagination
       parameters:
-      - description: User registration data
-        in: body
-        name: body
+      - description: Chat ID
+        in: path
+        name: chatId
         required: true
-        schema:
-          $ref: '#/definitions/handlers.SignUpRequest'
+        type: integer
+      - default: 30
+        description: Limit number of messages returned
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      - default: desc
+        description: Order of messages
+        enum:
+        - asc
+        - desc
+        in: query
+        name: order
+        type: string
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
           schema:
-            $ref: '#/definitions/handlers.SignUpResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string
@@ -208,7 +550,377 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Register a new user
+      security:
+      - BearerAuth: []
+      summary: Get chat messages
       tags:
-      - auth
+      - Chat
+    post:
+      consumes:
+      - application/json
+      description: Sends a new message to the specified chat
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        required: true
+        type: integer
+      - description: Message data
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/chat.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/chat.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Send message to chat
+      tags:
+      - Chat
+  /chats/{chatId}/ws:
+    get:
+      description: Establishes WebSocket connection for real-time chat messaging
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        required: true
+        type: integer
+      - description: JWT token for authentication
+        in: query
+        name: token
+        required: true
+        type: string
+      responses: {}
+      summary: WebSocket connection for chat
+      tags:
+      - Chat
+  /company/:
+    get:
+      description: Возвращает компанию, связанную с текущим пользователем
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CompanyResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить информацию о компании
+      tags:
+      - Company
+    put:
+      consumes:
+      - application/json
+      description: Частично обновляет компанию, связанную с текущим пользователем
+      parameters:
+      - description: Данные для обновления компании
+        in: body
+        name: company
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCompanyRequest'
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Обновить информацию о компании
+      tags:
+      - Company
+  /jobs/available-jobs/:
+    get:
+      description: Retrieves all active jobs for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/jobs.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/jobs.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Get active jobs
+      tags:
+      - Jobs
+  /payment/cards:
+    post:
+      consumes:
+      - application/json
+      description: Adds a new payment card for the authenticated user using Stripe
+        Payment Method
+      parameters:
+      - description: Payment method data
+        in: body
+        name: card
+        required: true
+        schema:
+          $ref: '#/definitions/models.AddCardRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.AddCardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add a payment card
+      tags:
+      - Payment
+  /trucks/:
+    get:
+      description: Retrieves all trucks associated with the authenticated user.
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Get trucks for the authenticated user
+      tags:
+      - Trucks
+    post:
+      consumes:
+      - multipart/form-data
+      description: Creates a truck associated with the authenticated user and uploads
+        photos.
+      parameters:
+      - description: Truck Name
+        in: formData
+        name: truck_name
+        required: true
+        type: string
+      - description: License Plate
+        in: formData
+        name: license_plate
+        required: true
+        type: string
+      - description: Make
+        in: formData
+        name: make
+        required: true
+        type: string
+      - description: Model
+        in: formData
+        name: model
+        required: true
+        type: string
+      - description: Year
+        in: formData
+        name: year
+        required: true
+        type: integer
+      - description: Color
+        in: formData
+        name: color
+        required: true
+        type: string
+      - description: Length (ft)
+        in: formData
+        name: length
+        required: true
+        type: number
+      - description: Width (ft)
+        in: formData
+        name: width
+        required: true
+        type: number
+      - description: Height (ft)
+        in: formData
+        name: height
+        required: true
+        type: number
+      - description: Max Weight (lbs)
+        in: formData
+        name: max_weight
+        required: true
+        type: number
+      - description: Truck Type
+        enum:
+        - Small
+        - Medium
+        - Large
+        in: formData
+        name: truck_type
+        required: true
+        type: string
+      - description: Climate Control
+        in: formData
+        name: climate_control
+        type: boolean
+      - description: Liftgate
+        in: formData
+        name: liftgate
+        type: boolean
+      - description: Pallet Jack
+        in: formData
+        name: pallet_jack
+        type: boolean
+      - description: Security System
+        in: formData
+        name: security_system
+        type: boolean
+      - description: Refrigerated
+        in: formData
+        name: refrigerated
+        type: boolean
+      - description: Furniture Pads
+        in: formData
+        name: furniture_pads
+        type: boolean
+      - collectionFormat: csv
+        description: Truck photo(s)
+        in: formData
+        items:
+          type: file
+        name: photo
+        type: array
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a new truck
+      tags:
+      - Trucks
+  /trucks/{truckId}/:
+    delete:
+      description: Deletes a truck by its ID
+      parameters:
+      - description: Truck ID
+        in: path
+        name: truckId
+        required: true
+        type: integer
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a truck
+      tags:
+      - Trucks
+    get:
+      description: Get a truck by its ID
+      parameters:
+      - description: Truck ID
+        in: path
+        name: truckId
+        required: true
+        type: integer
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Get truck by ID
+      tags:
+      - Trucks
+  /verification/:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a verification file associated with the authenticated user.
+      parameters:
+      - description: File Type
+        enum:
+        - MC License
+        - DOT Certificate
+        - Insurance Certificate
+        - Business License
+        in: formData
+        name: fileType
+        required: true
+        type: string
+      - description: Verification file
+        in: formData
+        name: file
+        required: true
+        type: file
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a new verification file
+      tags:
+      - Verification
+  /verification/files:
+    get:
+      description: Возвращает список файлов, загруженных пользователем для верификации
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список файлов
+          schema:
+            items:
+              $ref: '#/definitions/models.VerificationFile'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Получить файлы верификации пользователя
+      tags:
+      - Verification
+securityDefinitions:
+  BearerAuth:
+    description: 'Enter JWT token in format: Bearer {your_token_here}'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

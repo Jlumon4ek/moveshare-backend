@@ -66,7 +66,7 @@ func CreateChat(chatService service.ChatService, jobService service.JobService) 
 			return
 		}
 
-		jobExists, err := jobService.JobExists(c.Request.Context(), req.JobID)
+		jobExists, err := jobService.JobExists(req.JobID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to verify job existence",

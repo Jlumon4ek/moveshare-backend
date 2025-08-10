@@ -310,10 +310,10 @@ func (s *paymentService) HandleWebhook(ctx context.Context, payload []byte, sign
 		return s.handlePaymentIntentSucceeded(ctx, event)
 	case "payment_intent.payment_failed":
 		return s.handlePaymentIntentFailed(ctx, event)
-	case "payment_method.attached":
-		return s.handlePaymentMethodAttached(ctx, event)
-	case "payment_method.detached":
-		return s.handlePaymentMethodDetached(ctx, event)
+	// case "payment_method.attached":
+	// 	return s.handlePaymentMethodAttached(ctx, event)
+	// case "payment_method.detached":
+	// 	return s.handlePaymentMethodDetached(ctx, event)
 	default:
 		// Игнорируем неизвестные события
 		fmt.Printf("Received unhandled webhook event: %s\n", event.Type)
@@ -388,17 +388,17 @@ func (s *paymentService) handlePaymentIntentFailed(ctx context.Context, event st
 	return nil
 }
 
-func (s *paymentService) handlePaymentMethodAttached(ctx context.Context, event stripe.Event) error {
-	// Этот webhook можно использовать для дополнительной валидации
-	// или логирования, но основная логика уже в AddPaymentMethod
-	return nil
-}
+// func (s *paymentService) handlePaymentMethodAttached(ctx context.Context, event stripe.Event) error {
+// 	// Этот webhook можно использовать для дополнительной валидации
+// 	// или логирования, но основная логика уже в AddPaymentMethod
+// 	return nil
+// }
 
-func (s *paymentService) handlePaymentMethodDetached(ctx context.Context, event stripe.Event) error {
-	// Этот webhook можно использовать для дополнительной валидации
-	// или логирования, но основная логика уже в DeletePaymentMethod
-	return nil
-}
+// func (s *paymentService) handlePaymentMethodDetached(ctx context.Context, event stripe.Event) error {
+// 	// Этот webhook можно использовать для дополнительной валидации
+// 	// или логирования, но основная логика уже в DeletePaymentMethod
+// 	return nil
+// }
 
 func getPaymentStatusMessage(status stripe.PaymentIntentStatus) string {
 	switch status {

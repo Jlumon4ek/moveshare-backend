@@ -5,9 +5,9 @@ import "context"
 func (r *repository) HasJobAccess(ctx context.Context, jobID, userID1, userID2 int64) (bool, error) {
 	// Получаем информацию о задании
 	jobQuery := `
-		SELECT user_id 
+		SELECT contractor_id 
 		FROM jobs 
-		WHERE id = $1 AND status IN ('available', 'applied', 'in_progress')
+		WHERE id = $1
 	`
 
 	var jobOwnerID int64

@@ -1,22 +1,24 @@
 package router
 
 import (
-	"moveshare/internal/handlers/job"
+	"moveshare/internal/handlers"
 	"moveshare/internal/middleware"
 	"moveshare/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
 
-func JobRouter(r gin.IRouter, jobService service.JobService, jwtAuth service.JWTAuth) {
-	jobGroup := r.Group("/jobs")
-	jobGroup.Use(middleware.AuthMiddleware(jwtAuth))
+func SetupJobRoutes(r gin.IRouter, jobHandler *handlers.JobHandler, jwtAuth service.JWTAuth) {
+	protected := r.Group("/jobs")
+	protected.Use(middleware.AuthMiddleware(jwtAuth))
 	{
-		// jobGroup.POST("/", job.CreateJob(jobService))
-		jobGroup.GET("/available", job.GetAvailableJobs(jobService))
-		// jobGroup.GET("/my", job.GetMyJobs(jobService))
-		jobGroup.DELETE("/:jobID", job.DeleteJob(jobService))
-		jobGroup.POST("/:jobID/apply", job.ApplyForJob(jobService))
-		jobGroup.GET("/applications/my", job.GetMyApplications(jobService))
+
+		protected.POST("/post-new-job/", jobHandler.PostNewJob)
+		protected.POST("/claim-job/:id/", jobHandler.ClaimJob)
+		protected.GET("/available-jobs/", jobHandler.GetAvailableJobs)
+		protected.DELETE("/delete-job/:id/", jobHandler.DeleteJob)
+		protected.GET("/my-jobs/", jobHandler.GetMyJobs)
+		protected.GET("/job/:id/", jobHandler.GetJobByID)
+		protected.GET("/claimed-jobs/", jobHandler.GetClaimedJobs)
 	}
 }
