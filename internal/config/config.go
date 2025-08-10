@@ -10,7 +10,6 @@ type Config struct {
 	Database DatabaseConfig
 	Minio    MinioConfig
 	Stripe   StripeConfig
-	Email    EmailConfig
 }
 
 type MinioConfig struct {
@@ -29,11 +28,7 @@ type StripeConfig struct {
 	PublicKey     string
 	PrivateKey    string
 	RestrictedKey string
-}
-
-type EmailConfig struct {
-	SendPulseID     string
-	SendPulseSecret string
+	WebhookSecret string
 }
 
 func Load() (*Config, error) {
@@ -44,9 +39,15 @@ func Load() (*Config, error) {
 
 	minioConfig := loadMinioConfig()
 
+	stripeConfig, err := loadStripeConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		Database: *dbConfig,
 		Minio:    *minioConfig,
+		Stripe:   *stripeConfig,
 	}, nil
 }
 
@@ -97,27 +98,16 @@ func loadStripeConfig() (*StripeConfig, error) {
 	publicKey := os.Getenv("STRIPE_PUBLIC_KEY")
 	privateKey := os.Getenv("STRIPE_PRIVATE_KEY")
 	restrictedKey := os.Getenv("STRIPE_RESTRICTED_KEY")
+	webhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
 
-	if publicKey == "" || privateKey == "" || restrictedKey == "" {
-		return nil, fmt.Errorf("missing required Stripe environment variables")
+	if publicKey == "" || privateKey == "" {
+		return nil, fmt.Errorf("missing required Stripe environment variables (STRIPE_PUBLIC_KEY, STRIPE_PRIVATE_KEY)")
 	}
 
 	return &StripeConfig{
 		PublicKey:     publicKey,
 		PrivateKey:    privateKey,
 		RestrictedKey: restrictedKey,
-	}, nil
-}
-
-func loadEmailConfig() (*EmailConfig, error) {
-	sendPulseID := os.Getenv("SENDPULSE_ID")
-	sendPulseSecret := os.Getenv("SENDPULSE_SECRET_KEY")
-
-	if sendPulseID == "" || sendPulseSecret == "" {
-		return nil, fmt.Errorf("missing required SendPulse environment variables")
-	}
-	return &EmailConfig{
-		SendPulseID:     sendPulseID,
-		SendPulseSecret: sendPulseSecret,
+		WebhookSecret: webhookSecret,
 	}, nil
 }

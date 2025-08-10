@@ -15,6 +15,9 @@ type ChatRepository interface {
 	SendMessage(ctx context.Context, message *models.ChatMessage) (*models.ChatMessageResponse, error)
 	IsChatActive(ctx context.Context, chatID int64) (bool, error)
 	UpdateChatActivity(ctx context.Context, chatID int64) error
+	CreateChat(ctx context.Context, jobID, clientID, contractorID int64) (int64, error)
+	FindExistingChat(ctx context.Context, jobID, userID1, userID2 int64) (int64, error)
+	HasJobAccess(ctx context.Context, jobID, userID1, userID2 int64) (bool, error)
 }
 
 type repository struct {

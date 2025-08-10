@@ -7,13 +7,19 @@ import (
 
 func (r *repository) GetUserJobs(ctx context.Context, userID int64) ([]models.Job, error) {
 	query := `
-		SELECT id, user_id, job_title, description, cargo_type, urgency, truck_size, loading_assistance,
-			pickup_date, pickup_time_window, delivery_date, delivery_time_window, pickup_location,
-			delivery_location, payout_amount, early_delivery_bonus, payment_terms, weight_lb,
-			volume_cu_ft, liftgate, fragile_items, climate_control, assembly_required,
-			extra_insurance, additional_packing, status
+		SELECT 
+			id, user_id, job_type, job_title, description, number_of_bedrooms,
+			packing_boxes, bulky_items, inventory_list, hoisting, additional_services_desc,
+			truck_size, crew_assistants,
+			pickup_location, pickup_type, pickup_walk_distance,
+			delivery_location, delivery_type, delivery_walk_distance,
+			pickup_date, pickup_time_start, pickup_time_end,
+			delivery_date, delivery_time_start, delivery_time_end,
+			cut_amount, payment_amount, total_amount,
+			status, distance_miles, created_at, updated_at
 		FROM jobs
 		WHERE user_id = $1
+		ORDER BY created_at DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, userID)
@@ -26,12 +32,15 @@ func (r *repository) GetUserJobs(ctx context.Context, userID int64) ([]models.Jo
 	for rows.Next() {
 		var job models.Job
 		err := rows.Scan(
-			&job.ID, &job.UserID, &job.JobTitle, &job.Description, &job.CargoType, &job.Urgency,
-			&job.TruckSize, &job.LoadingAssistance, &job.PickupDate, &job.PickupTimeWindow,
-			&job.DeliveryDate, &job.DeliveryTimeWindow, &job.PickupLocation, &job.DeliveryLocation,
-			&job.PayoutAmount, &job.EarlyDeliveryBonus, &job.PaymentTerms, &job.WeightLb,
-			&job.VolumeCuFt, &job.Liftgate, &job.FragileItems, &job.ClimateControl,
-			&job.AssemblyRequired, &job.ExtraInsurance, &job.AdditionalPacking, &job.Status,
+			&job.ID, &job.UserID, &job.JobType, &job.JobTitle, &job.Description, &job.NumberOfBedrooms,
+			&job.PackingBoxes, &job.BulkyItems, &job.InventoryList, &job.Hoisting, &job.AdditionalServicesDesc,
+			&job.TruckSize, &job.CrewAssistants,
+			&job.PickupLocation, &job.PickupType, &job.PickupWalkDistance,
+			&job.DeliveryLocation, &job.DeliveryType, &job.DeliveryWalkDistance,
+			&job.PickupDate, &job.PickupTimeStart, &job.PickupTimeEnd,
+			&job.DeliveryDate, &job.DeliveryTimeStart, &job.DeliveryTimeEnd,
+			&job.CutAmount, &job.PaymentAmount, &job.TotalAmount,
+			&job.Status, &job.DistanceMiles, &job.CreatedAt, &job.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -39,5 +48,5 @@ func (r *repository) GetUserJobs(ctx context.Context, userID int64) ([]models.Jo
 		jobs = append(jobs, job)
 	}
 
-	return jobs, nil
+	return jobs, rows.Err()
 }

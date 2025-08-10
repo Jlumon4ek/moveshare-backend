@@ -9,6 +9,7 @@ import (
 	"moveshare/internal/repository/chat"
 	"moveshare/internal/repository/company"
 	"moveshare/internal/repository/job"
+	"moveshare/internal/repository/payment"
 	"moveshare/internal/repository/truck"
 	"moveshare/internal/repository/user"
 	"moveshare/internal/repository/verification"
@@ -65,9 +66,6 @@ func main() {
 	companyRepo := company.NewCompanyRepository(db)
 	companyService := service.NewCompanyService(companyRepo, userRepo)
 
-	jobRepo := job.NewJobRepository(db)
-	jobService := service.NewJobService(jobRepo)
-
 	minioRepo, err := repository.MinioRepository(&cfg.Minio)
 	if err != nil {
 		log.Fatalf("failed to initialize Minio repository: %v", err)
@@ -75,8 +73,16 @@ func main() {
 	truckRepo := truck.NewTruckRepository(db)
 	truckService := service.NewTruckService(truckRepo, minioRepo)
 
+	jobRepo := job.NewJobRepository(db)
+	jobService := service.NewJobService(jobRepo, minioRepo)
+
 	verificationRepo := verification.NewVerificationRepository(db)
 	verificationService := service.NewVerificationService(verificationRepo, minioRepo)
+
+	stripeService := service.NewStripeService(&cfg.Stripe)
+
+	paymentRepo := payment.NewPaymentRepository(db)
+	paymentService := service.NewPaymentService(paymentRepo, stripeService, userService)
 
 	chatRepo := chat.NewChatRepository(db)
 	chatService := service.NewChatService(chatRepo)
@@ -88,7 +94,7 @@ func main() {
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{
 		"http://localhost:3000",
-		"http://localhost:5173", // Vite
+		"http://localhost:5173",
 		"http://127.0.0.1:5173",
 		"http://127.0.0.1:3000",
 	}
@@ -121,7 +127,9 @@ func main() {
 		router.JobRouter(apiGroup, jobService, jwtAuth)
 		router.TruckRouter(apiGroup, truckService, jwtAuth)
 		router.VerificationRouter(apiGroup, verificationService, jwtAuth)
-		router.ChatRouter(apiGroup, chatService, jwtAuth, chatHub)
+		router.ChatRouter(apiGroup, chatService, jobService, jwtAuth, chatHub) // ✅ Передаем jobService
+		router.PaymentRouter(apiGroup, paymentService, jwtAuth)                // ✅ Добавить
+
 	}
 
 	log.Println("Starting server on :8080")

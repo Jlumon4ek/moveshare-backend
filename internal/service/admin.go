@@ -10,7 +10,7 @@ type AdminService interface {
 	GetUserCount(ctx context.Context) (int, error)
 	GetChatConversationCount(ctx context.Context) (int, error)
 	GetUsersList(ctx context.Context, limit, offset int) ([]models.UserCompanyInfo, error)
-	GetActiveJobs(ctx context.Context, limit, offset int) ([]models.Job, error)
+	// GetActiveJobs(ctx context.Context, limit, offset int) ([]models.Job, error)
 	ChangeUserStatus(ctx context.Context, userID int, newStatus string) error
 	GetUserRole(ctx context.Context, userID int64) (string, error)
 	ChangeVerificationFileStatus(ctx context.Context, fileID int, newStatus string) error
@@ -38,9 +38,9 @@ func (s *adminService) GetUsersList(ctx context.Context, limit, offset int) ([]m
 	return s.adminRepo.GetUsersList(ctx, limit, offset)
 }
 
-func (s *adminService) GetActiveJobs(ctx context.Context, limit, offset int) ([]models.Job, error) {
-	return s.adminRepo.GetAllJobs(ctx, limit, offset)
-}
+// func (s *adminService) GetActiveJobs(ctx context.Context, limit, offset int) ([]models.Job, error) {
+// 	return s.adminRepo.GetAllJobs(ctx, limit, offset)
+// }
 
 func (s *adminService) ChangeUserStatus(ctx context.Context, userID int, newStatus string) error {
 	return s.adminRepo.ChangeUserStatus(ctx, userID, newStatus)

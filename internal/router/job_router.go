@@ -12,9 +12,9 @@ func JobRouter(r gin.IRouter, jobService service.JobService, jwtAuth service.JWT
 	jobGroup := r.Group("/jobs")
 	jobGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{
-		jobGroup.POST("/", job.PostNewJob(jobService))
+		// jobGroup.POST("/", job.CreateJob(jobService))
 		jobGroup.GET("/available", job.GetAvailableJobs(jobService))
-		jobGroup.GET("/my", job.GetMyJobs(jobService))
+		// jobGroup.GET("/my", job.GetMyJobs(jobService))
 		jobGroup.DELETE("/:jobID", job.DeleteJob(jobService))
 		jobGroup.POST("/:jobID/apply", job.ApplyForJob(jobService))
 		jobGroup.GET("/applications/my", job.GetMyApplications(jobService))

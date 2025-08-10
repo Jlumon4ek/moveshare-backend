@@ -7,14 +7,20 @@ import (
 
 func (r *repository) GetMyApplications(ctx context.Context, userID int64) ([]models.Job, error) {
 	query := `
-		SELECT j.id, j.user_id, j.job_title, j.description, j.cargo_type, j.urgency, j.truck_size, j.loading_assistance,
-		       j.pickup_date, j.pickup_time_window, j.delivery_date, j.delivery_time_window, j.pickup_location,
-		       j.delivery_location, j.payout_amount, j.early_delivery_bonus, j.payment_terms, j.weight_lb,
-		       j.volume_cu_ft, j.liftgate, j.fragile_items, j.climate_control, j.assembly_required,
-		       j.extra_insurance, j.additional_packing
+		SELECT 
+			j.id, j.user_id, j.job_type, j.job_title, j.description, j.number_of_bedrooms,
+			j.packing_boxes, j.bulky_items, j.inventory_list, j.hoisting, j.additional_services_desc,
+			j.truck_size, j.crew_assistants,
+			j.pickup_location, j.pickup_type, j.pickup_walk_distance,
+			j.delivery_location, j.delivery_type, j.delivery_walk_distance,
+			j.pickup_date, j.pickup_time_start, j.pickup_time_end,
+			j.delivery_date, j.delivery_time_start, j.delivery_time_end,
+			j.cut_amount, j.payment_amount, j.total_amount,
+			j.status, j.distance_miles, j.created_at, j.updated_at
 		FROM jobs j
 		JOIN job_applications ja ON j.id = ja.job_id
 		WHERE ja.user_id = $1
+		ORDER BY ja.created_at DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, userID)
@@ -27,12 +33,15 @@ func (r *repository) GetMyApplications(ctx context.Context, userID int64) ([]mod
 	for rows.Next() {
 		var job models.Job
 		err := rows.Scan(
-			&job.ID, &job.UserID, &job.JobTitle, &job.Description, &job.CargoType, &job.Urgency,
-			&job.TruckSize, &job.LoadingAssistance, &job.PickupDate, &job.PickupTimeWindow,
-			&job.DeliveryDate, &job.DeliveryTimeWindow, &job.PickupLocation, &job.DeliveryLocation,
-			&job.PayoutAmount, &job.EarlyDeliveryBonus, &job.PaymentTerms, &job.WeightLb,
-			&job.VolumeCuFt, &job.Liftgate, &job.FragileItems, &job.ClimateControl,
-			&job.AssemblyRequired, &job.ExtraInsurance, &job.AdditionalPacking,
+			&job.ID, &job.UserID, &job.JobType, &job.JobTitle, &job.Description, &job.NumberOfBedrooms,
+			&job.PackingBoxes, &job.BulkyItems, &job.InventoryList, &job.Hoisting, &job.AdditionalServicesDesc,
+			&job.TruckSize, &job.CrewAssistants,
+			&job.PickupLocation, &job.PickupType, &job.PickupWalkDistance,
+			&job.DeliveryLocation, &job.DeliveryType, &job.DeliveryWalkDistance,
+			&job.PickupDate, &job.PickupTimeStart, &job.PickupTimeEnd,
+			&job.DeliveryDate, &job.DeliveryTimeStart, &job.DeliveryTimeEnd,
+			&job.CutAmount, &job.PaymentAmount, &job.TotalAmount,
+			&job.Status, &job.DistanceMiles, &job.CreatedAt, &job.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -40,5 +49,5 @@ func (r *repository) GetMyApplications(ctx context.Context, userID int64) ([]mod
 		jobs = append(jobs, job)
 	}
 
-	return jobs, nil
+	return jobs, rows.Err()
 }
