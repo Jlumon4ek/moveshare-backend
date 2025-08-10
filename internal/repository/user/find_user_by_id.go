@@ -7,7 +7,7 @@ import (
 
 func (r *repository) FindUserByID(ctx context.Context, userID int64) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password
+		SELECT id, username, email, password, role, status, profile_photo_id, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -18,6 +18,11 @@ func (r *repository) FindUserByID(ctx context.Context, userID int64) (*models.Us
 		&user.Username,
 		&user.Email,
 		&user.Password,
+		&user.Role,
+		&user.Status,
+		&user.ProfilePhotoID,
+		&user.CreatedAt,
+		&user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

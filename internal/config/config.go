@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	Database DatabaseConfig
-	Minio    MinioConfig
-	Stripe   StripeConfig
+	Database   DatabaseConfig
+	Minio      MinioConfig
+	Stripe     StripeConfig
+	GoogleMaps GoogleMapsConfig
 }
 
 type MinioConfig struct {
@@ -31,6 +32,10 @@ type StripeConfig struct {
 	WebhookSecret string
 }
 
+type GoogleMapsConfig struct {
+	APIKey string
+}
+
 func Load() (*Config, error) {
 	dbConfig, err := loadDatabaseConfig()
 	if err != nil {
@@ -44,10 +49,13 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	googleMapsConfig := loadGoogleMapsConfig()
+
 	return &Config{
-		Database: *dbConfig,
-		Minio:    *minioConfig,
-		Stripe:   *stripeConfig,
+		Database:   *dbConfig,
+		Minio:      *minioConfig,
+		Stripe:     *stripeConfig,
+		GoogleMaps: *googleMapsConfig,
 	}, nil
 }
 
@@ -110,4 +118,16 @@ func loadStripeConfig() (*StripeConfig, error) {
 		RestrictedKey: restrictedKey,
 		WebhookSecret: webhookSecret,
 	}, nil
+}
+
+func loadGoogleMapsConfig() *GoogleMapsConfig {
+	apiKey := os.Getenv("GOOGLE_MAPS_API_KEY")
+	
+	if apiKey == "" {
+		log.Println("WARNING: GOOGLE_MAPS_API_KEY environment variable is not set!")
+	}
+
+	return &GoogleMapsConfig{
+		APIKey: apiKey,
+	}
 }

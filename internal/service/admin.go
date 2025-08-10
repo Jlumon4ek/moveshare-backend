@@ -42,6 +42,7 @@ func (s *adminService) GetUsersList(ctx context.Context, limit, offset int) ([]m
 // 	return s.adminRepo.GetAllJobs(ctx, limit, offset)
 // }
 
+
 func (s *adminService) ChangeUserStatus(ctx context.Context, userID int, newStatus string) error {
 	return s.adminRepo.ChangeUserStatus(ctx, userID, newStatus)
 }

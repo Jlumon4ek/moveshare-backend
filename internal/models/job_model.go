@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -68,21 +69,6 @@ type JobApplication struct {
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
-// DTO for available jobs list
-type AvailableJobDTO struct {
-	ID              int64     `json:"id"`
-	ContractorID    int64     `json:"contractor_id"`
-	JobType         string    `json:"job_type"`
-	DistanceMiles   float64   `json:"distance_miles"`
-	PickupAddress   string    `json:"pickup_address"`
-	DeliveryAddress string    `json:"delivery_address"`
-	PickupDate      time.Time `json:"pickup_date"`
-	TruckSize       string    `json:"truck_size"`
-	WeightLbs       float64   `json:"weight_lbs"`
-	VolumeCuFt      float64   `json:"volume_cu_ft"`
-	PaymentAmount   float64   `json:"payment_amount"`
-}
-
 // Request DTOs
 type CreateJobRequest struct {
 	JobType          string `json:"job_type" binding:"required"`
@@ -125,4 +111,115 @@ type CreateJobRequest struct {
 type PaginationQuery struct {
 	Page  int `form:"page,default=1" binding:"min=1"`
 	Limit int `form:"limit,default=10" binding:"min=1,max=100"`
+}
+
+// internal/models/job_model.go - добавить к существующим структурам
+
+// JobFilters представляет параметры фильтрации для поиска заданий
+type JobFilters struct {
+	// Пагинация
+	Page  int `form:"page,default=1" binding:"min=1"`
+	Limit int `form:"limit,default=10" binding:"min=1,max=100"`
+
+	// Фильтры
+	NumberOfBedrooms *string  `form:"number_of_bedrooms"` // например: "1", "2", "3", "4+", "Studio"
+	Origin           *string  `form:"origin"`             // адрес отправления (поиск по частичному совпадению)
+	Destination      *string  `form:"destination"`        // адрес назначения (поиск по частичному совпадению)
+	MaxDistance      *float64 `form:"max_distance"`       // максимальная дистанция в милях
+	DateStart        *string  `form:"date_start"`         // начальная дата в формате YYYY-MM-DD
+	DateEnd          *string  `form:"date_end"`           // конечная дата в формате YYYY-MM-DD
+	TruckSize        *string  `form:"truck_size"`         // размер грузовика: "Small", "Medium", "Large"
+	PayoutMin        *float64 `form:"payout_min"`         // минимальная оплата
+	PayoutMax        *float64 `form:"payout_max"`         // максимальная оплата
+}
+
+// Validate валидирует параметры фильтрации
+func (f *JobFilters) Validate() error {
+	// Валидация дат
+	if f.DateStart != nil {
+		if _, err := time.Parse("2006-01-02", *f.DateStart); err != nil {
+			return fmt.Errorf("invalid date_start format, use YYYY-MM-DD")
+		}
+	}
+
+	if f.DateEnd != nil {
+		if _, err := time.Parse("2006-01-02", *f.DateEnd); err != nil {
+			return fmt.Errorf("invalid date_end format, use YYYY-MM-DD")
+		}
+	}
+
+	// Валидация дистанции
+	if f.MaxDistance != nil && *f.MaxDistance <= 0 {
+		return fmt.Errorf("max_distance must be greater than 0")
+	}
+
+	// Валидация размера грузовика
+	if f.TruckSize != nil {
+		validSizes := map[string]bool{"Small": true, "Medium": true, "Large": true}
+		if !validSizes[*f.TruckSize] {
+			return fmt.Errorf("truck_size must be one of: Small, Medium, Large")
+		}
+	}
+
+	// Валидация диапазона оплаты
+	if f.PayoutMin != nil && *f.PayoutMin < 0 {
+		return fmt.Errorf("payout_min must be non-negative")
+	}
+
+	if f.PayoutMax != nil && *f.PayoutMax < 0 {
+		return fmt.Errorf("payout_max must be non-negative")
+	}
+
+	if f.PayoutMin != nil && f.PayoutMax != nil && *f.PayoutMin > *f.PayoutMax {
+		return fmt.Errorf("payout_min cannot be greater than payout_max")
+	}
+
+	return nil
+}
+
+// internal/models/job_model.go - добавить структуру для опций фильтров
+
+// JobFilterOptions представляет доступные опции для фильтрации
+type JobFilterOptions struct {
+	NumberOfBedrooms []string `json:"number_of_bedrooms"`
+	TruckSizes       []string `json:"truck_sizes"`
+	PayoutRange      struct {
+		Min float64 `json:"min"`
+		Max float64 `json:"max"`
+	} `json:"payout_range"`
+	MaxDistance struct {
+		Max float64 `json:"max"`
+	} `json:"max_distance_available"`
+	DateRange struct {
+		Min string `json:"min"` // YYYY-MM-DD
+		Max string `json:"max"` // YYYY-MM-DD
+	} `json:"date_range"`
+}
+
+// Также обновим AvailableJobDTO чтобы включить number_of_bedrooms
+type AvailableJobDTO struct {
+	ID               int64     `json:"id"`
+	ContractorID     int64     `json:"contractor_id"`
+	JobType          string    `json:"job_type"`
+	NumberOfBedrooms string    `json:"number_of_bedrooms"`
+	DistanceMiles    float64   `json:"distance_miles"`
+	PickupAddress    string    `json:"pickup_address"`
+	DeliveryAddress  string    `json:"delivery_address"`
+	PickupDate       time.Time `json:"pickup_date"`
+	TruckSize        string    `json:"truck_size"`
+	WeightLbs        float64   `json:"weight_lbs"`
+	VolumeCuFt       float64   `json:"volume_cu_ft"`
+	PaymentAmount    float64   `json:"payment_amount"`
+}
+
+// ExportJobsRequest представляет запрос на экспорт работ
+type ExportJobsRequest struct {
+	JobIDs []int64 `json:"job_ids" binding:"required,min=1"`
+}
+
+// JobsStats представляет статистику по работам
+type JobsStats struct {
+	ActiveJobsCount     int                    `json:"active_jobs_count"`
+	NewJobsThisWeek     int                    `json:"new_jobs_this_week"`
+	StatusDistribution  map[string]int         `json:"status_distribution"`
 }

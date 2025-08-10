@@ -15,7 +15,7 @@ type ChatService interface {
 	IsChatActive(ctx context.Context, chatID int64) (bool, error)
 	UpdateChatActivity(ctx context.Context, chatID int64) error
 	CreateChat(ctx context.Context, jobID, clientID, contractorID int64) (int64, error)
-	FindExistingChat(ctx context.Context, jobID, userID1, userID2 int64) (int64, error)
+	FindExistingChat(ctx context.Context, jobID, client_id, contractor_id int64) (int64, error)
 	HasJobAccess(ctx context.Context, jobID, userID1, userID2 int64) (bool, error)
 }
 
@@ -61,8 +61,8 @@ func (s *chatService) CreateChat(ctx context.Context, jobID, clientID, contracto
 	return s.chatRepo.CreateChat(ctx, jobID, clientID, contractorID)
 }
 
-func (s *chatService) FindExistingChat(ctx context.Context, jobID, userID1, userID2 int64) (int64, error) {
-	return s.chatRepo.FindExistingChat(ctx, jobID, userID1, userID2)
+func (s *chatService) FindExistingChat(ctx context.Context, jobID, client_id, contractor_id int64) (int64, error) {
+	return s.chatRepo.FindExistingChat(ctx, jobID, client_id, contractor_id)
 }
 
 func (s *chatService) HasJobAccess(ctx context.Context, jobID, userID1, userID2 int64) (bool, error) {

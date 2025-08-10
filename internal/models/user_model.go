@@ -3,14 +3,15 @@ package models
 import "time"
 
 type User struct {
-	ID        int64     `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Password  string    `json:"password"`
-	Role      string    `json:"role"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID             int64     `json:"id"`
+	Username       string    `json:"username"`
+	Email          string    `json:"email"`
+	Password       string    `json:"password"`
+	Role           string    `json:"role"`
+	Status         string    `json:"status"`
+	ProfilePhotoID *string   `json:"profile_photo_id" db:"profile_photo_id"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 type SignUpRequest struct {
@@ -38,4 +39,9 @@ type SignInResponse struct {
 
 type ErrorResponse struct {
 	Error string `json:"error" example:"Invalid request"`
+}
+
+type UploadPhotoResponse struct {
+	Message        string `json:"message"`
+	ProfilePhotoID string `json:"profile_photo_id"`
 }

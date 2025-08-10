@@ -12,13 +12,16 @@ func SetupJobRoutes(r gin.IRouter, jobHandler *handlers.JobHandler, jwtAuth serv
 	protected := r.Group("/jobs")
 	protected.Use(middleware.AuthMiddleware(jwtAuth))
 	{
-
 		protected.POST("/post-new-job/", jobHandler.PostNewJob)
 		protected.POST("/claim-job/:id/", jobHandler.ClaimJob)
-		protected.GET("/available-jobs/", jobHandler.GetAvailableJobs)
+		protected.GET("/available-jobs/", jobHandler.GetAvailableJobs)    // уже обновлен
+		protected.GET("/filter-options/", jobHandler.GetJobFilterOptions) // новый эндпоинт
+		protected.GET("/stats/", jobHandler.GetJobsStats)                 // статистика работ
 		protected.DELETE("/delete-job/:id/", jobHandler.DeleteJob)
 		protected.GET("/my-jobs/", jobHandler.GetMyJobs)
-		protected.GET("/job/:id/", jobHandler.GetJobByID)
+		protected.GET("/:id/details/", jobHandler.GetJobByID)
 		protected.GET("/claimed-jobs/", jobHandler.GetClaimedJobs)
+		protected.POST("/mark-job-completed/:id/", jobHandler.MarkJobCompleted)
+		protected.POST("/export-jobs/", jobHandler.ExportJobs)
 	}
 }

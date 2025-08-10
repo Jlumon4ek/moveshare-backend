@@ -10,6 +10,8 @@ type UserService interface {
 	CreateUser(ctx context.Context, user *models.User) error
 	FindUserByEmailOrUsername(ctx context.Context, identifier string) (*models.User, error)
 	FindUserByID(ctx context.Context, userID int64) (*models.User, error)
+	GetUserByID(userID int64) (*models.User, error)
+	UpdateProfilePhotoID(userID int64, photoID string) error
 }
 
 type userService struct {
@@ -37,4 +39,14 @@ func (s *userService) FindUserByEmailOrUsername(ctx context.Context, identifier 
 
 func (s *userService) FindUserByID(ctx context.Context, userID int64) (*models.User, error) {
 	return s.userRepo.FindUserByID(ctx, userID)
+}
+
+func (s *userService) GetUserByID(userID int64) (*models.User, error) {
+	ctx := context.Background()
+	return s.userRepo.FindUserByID(ctx, userID)
+}
+
+func (s *userService) UpdateProfilePhotoID(userID int64, photoID string) error {
+	ctx := context.Background()
+	return s.userRepo.UpdateProfilePhotoID(ctx, userID, photoID)
 }

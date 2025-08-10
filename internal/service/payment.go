@@ -358,7 +358,6 @@ func (s *paymentService) handlePaymentIntentSucceeded(ctx context.Context, event
 }
 
 func (s *paymentService) handlePaymentIntentFailed(ctx context.Context, event stripe.Event) error {
-	// ✅ ИСПРАВЛЕНИЕ: Правильный способ получения данных из webhook для v82
 	var paymentIntent stripe.PaymentIntent
 	err := json.Unmarshal(event.Data.Raw, &paymentIntent)
 	if err != nil {

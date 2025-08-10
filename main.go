@@ -6,10 +6,12 @@ import (
 	"moveshare/internal/config"
 	"moveshare/internal/handlers"
 	"moveshare/internal/handlers/chat"
+	"moveshare/internal/handlers/review"
 	"moveshare/internal/repository"
 	chatRepo "moveshare/internal/repository/chat"
 	"moveshare/internal/repository/company"
 	"moveshare/internal/repository/payment"
+	reviewRepo "moveshare/internal/repository/review"
 	"moveshare/internal/repository/truck"
 	"moveshare/internal/repository/user"
 	"moveshare/internal/repository/verification"
@@ -68,6 +70,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to initialize Minio repository: %v", err)
 	}
+	minioService := service.NewMinioService(minioRepo)
 	truckRepo := truck.NewTruckRepository(db)
 	truckService := service.NewTruckService(truckRepo, minioRepo)
 
@@ -110,7 +113,7 @@ func main() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	jobRepo := repository.NewJobRepository(db)
-	jobService := service.NewJobService(jobRepo)
+	jobService := service.NewJobService(jobRepo, &cfg.GoogleMaps)
 	jobHandler := handlers.NewJobHandler(jobService)
 
 	locationRepo := repository.NewLocationRepository(db)
@@ -119,6 +122,10 @@ func main() {
 
 	chatRepo := chatRepo.NewChatRepository(db)
 	chatService := service.NewChatService(chatRepo)
+
+	reviewRepo := reviewRepo.NewReviewRepository(db)
+	reviewService := service.NewReviewService(reviewRepo)
+	reviewHandler := review.NewReviewHandler(reviewService)
 
 	// Инициализация WebSocket hub
 	hub := chat.NewHub(chatService)
@@ -129,7 +136,7 @@ func main() {
 	apiGroup := r.Group("/api")
 	{
 		// router.AdminRouter(apiGroup, jwtAuth, adminService)
-		router.UserRouter(apiGroup, userService, jwtAuth)
+		router.UserRouter(apiGroup, userService, minioService, jwtAuth)
 		router.CompanyRouter(apiGroup, companyService, jwtAuth)
 		router.TruckRouter(apiGroup, truckService, jwtAuth)
 		router.VerificationRouter(apiGroup, verificationService, jwtAuth)
@@ -137,6 +144,7 @@ func main() {
 		router.SetupJobRoutes(apiGroup, jobHandler, jwtAuth)
 		router.SetupLocationRoutes(apiGroup, locationHandler)
 		router.SetupChatRoutes(apiGroup, chatService, *jobService, jwtAuth, hub)
+		router.SetupReviewRoutes(apiGroup, reviewHandler, jwtAuth)
 	}
 
 	log.Println("Starting server on :8080")
