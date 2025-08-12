@@ -89,6 +89,7 @@ func (s *JobService) CreateJob(userID int64, req *models.CreateJobRequest) (*mod
 		DeliveryBuildingType:          req.DeliveryBuildingType,
 		DeliveryWalkDistance:          req.DeliveryWalkDistance,
 		DistanceMiles:                 req.DistanceMiles,
+		JobStatus:                     "active",
 		PickupDate:                    pickupDate,
 		PickupTimeFrom:                pickupTimeFrom,
 		PickupTimeTo:                  pickupTimeTo,

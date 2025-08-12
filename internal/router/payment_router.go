@@ -15,14 +15,13 @@ func PaymentRouter(r gin.IRouter, paymentService service.PaymentService, jwtAuth
 	{
 		// Payment Methods (Cards)
 		paymentGroup.POST("/cards", payment.AddCard(paymentService))
-		// paymentGroup.GET("/cards", payment.GetUserCards(paymentService))
-		// paymentGroup.DELETE("/cards/:cardId", payment.DeleteCard(paymentService))
-		// paymentGroup.PATCH("/cards/:cardId/default", payment.SetDefaultCard(paymentService))
+		paymentGroup.GET("/cards", payment.GetUserCards(paymentService))
+		paymentGroup.DELETE("/cards/:cardId", payment.DeleteCard(paymentService))
+		paymentGroup.PATCH("/cards/:cardId/default", payment.SetDefaultCard(paymentService))
 
-		// Payments
-		// paymentGroup.POST("/create-intent", payment.CreatePayment(paymentService))
-		// paymentGroup.POST("/confirm-payment", payment.ConfirmPayment(paymentService))
-		// paymentGroup.GET("/history", payment.GetPaymentHistory(paymentService))
+		paymentGroup.POST("/create-intent", payment.CreatePayment(paymentService))
+		paymentGroup.POST("/confirm-payment", payment.ConfirmPayment(paymentService))
+		paymentGroup.GET("/history", payment.GetPaymentHistory(paymentService))
 	}
 
 	// Webhook endpoint (без аутентификации)

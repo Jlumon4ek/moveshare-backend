@@ -310,9 +310,11 @@ func (h *JobHandler) ExportJobs(c *gin.Context) {
 		return
 	}
 
-	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Content-Disposition", "attachment; filename=jobs_export.csv")
-	c.Data(http.StatusOK, "text/csv", csvData)
+	c.Header("Content-Length", fmt.Sprintf("%d", len(csvData)))
+	c.Header("Cache-Control", "no-cache")
+	c.Data(http.StatusOK, "application/octet-stream", csvData)
 }
 
 func (h *JobHandler) generateCSV(jobs []models.Job) ([]byte, error) {

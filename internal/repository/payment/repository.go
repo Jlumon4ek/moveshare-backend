@@ -358,11 +358,12 @@ func (r *repository) GetPaymentByStripeIntentID(ctx context.Context, stripePayme
 
 	var payment models.Payment
 	var jobID *int64
+	var failureReason *string // ✅ ИЗМЕНЕНИЕ: Используем *string вместо string
 	err := r.db.QueryRow(ctx, query, stripePaymentIntentID).Scan(
 		&payment.ID, &payment.UserID, &jobID, &payment.StripePaymentIntentID,
 		&payment.StripePaymentMethodID, &payment.StripeCustomerID,
 		&payment.AmountCents, &payment.Currency, &payment.Status,
-		&payment.Description, &payment.FailureReason,
+		&payment.Description, &failureReason, // ✅ ИЗМЕНЕНИЕ: Сканируем в указатель
 		&payment.CreatedAt, &payment.UpdatedAt,
 	)
 	if err != nil {
@@ -371,6 +372,10 @@ func (r *repository) GetPaymentByStripeIntentID(ctx context.Context, stripePayme
 
 	if jobID != nil {
 		payment.JobID = *jobID
+	}
+
+	if failureReason != nil {
+		payment.FailureReason = *failureReason
 	}
 
 	return &payment, nil
@@ -408,11 +413,12 @@ func (r *repository) GetUserPayments(ctx context.Context, userID int64, limit, o
 	for rows.Next() {
 		var payment models.Payment
 		var jobID *int64
+		var failureReason *string // ✅ ИЗМЕНЕНИЕ: Используем *string
 		err := rows.Scan(
 			&payment.ID, &payment.UserID, &jobID, &payment.StripePaymentIntentID,
 			&payment.StripePaymentMethodID, &payment.StripeCustomerID,
 			&payment.AmountCents, &payment.Currency, &payment.Status,
-			&payment.Description, &payment.FailureReason,
+			&payment.Description, &failureReason, // ✅ ИЗМЕНЕНИЕ: Сканируем в указатель
 			&payment.CreatedAt, &payment.UpdatedAt,
 		)
 		if err != nil {
@@ -421,6 +427,11 @@ func (r *repository) GetUserPayments(ctx context.Context, userID int64, limit, o
 
 		if jobID != nil {
 			payment.JobID = *jobID
+		}
+
+		// ✅ ИЗМЕНЕНИЕ: Проверяем и присваиваем failure_reason
+		if failureReason != nil {
+			payment.FailureReason = *failureReason
 		}
 
 		payments = append(payments, payment)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"moveshare/internal/config"
 	"net/http"
 	"net/url"
@@ -38,6 +39,13 @@ type DistanceResult struct {
 	DistanceValue int    `json:"distance_value"`
 	Duration      string `json:"duration"`
 	DurationValue int    `json:"duration_value"`
+}
+
+// formatDistance converts meters to kilometers and rounds to 1 decimal place
+func formatDistance(meters int) string {
+	km := float64(meters) / 1000.0
+	rounded := math.Round(km*10) / 10
+	return fmt.Sprintf("%.1f km", rounded)
 }
 
 func GetDistance(pointA, pointB Point, cfg *config.GoogleMapsConfig) (*DistanceResult, error) {
@@ -81,7 +89,7 @@ func GetDistance(pointA, pointB Point, cfg *config.GoogleMapsConfig) (*DistanceR
 	}
 
 	return &DistanceResult{
-		Distance:      element.Distance.Text,
+		Distance:      formatDistance(element.Distance.Value),
 		DistanceValue: element.Distance.Value,
 		Duration:      element.Duration.Text,
 		DurationValue: element.Duration.Value,
@@ -132,7 +140,7 @@ func GetDistanceFromAddresses(pickupAddress, deliveryAddress string, cfg *config
 	}
 
 	return &DistanceResult{
-		Distance:      element.Distance.Text,
+		Distance:      formatDistance(element.Distance.Value),
 		DistanceValue: element.Distance.Value,
 		Duration:      element.Duration.Text,
 		DurationValue: element.Duration.Value,

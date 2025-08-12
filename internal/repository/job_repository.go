@@ -40,7 +40,7 @@ func (r *JobRepository) CreateJob(ctx context.Context, job *models.Job) error {
 		job.InventoryList, job.Hoisting, job.AdditionalServicesDescription, job.EstimatedCrewAssistants,
 		job.TruckSize, job.PickupAddress, job.PickupFloor, job.PickupBuildingType, job.PickupWalkDistance,
 		job.DeliveryAddress, job.DeliveryFloor, job.DeliveryBuildingType, job.DeliveryWalkDistance,
-		job.DistanceMiles, "pending", job.PickupDate, job.PickupTimeFrom, job.PickupTimeTo,
+		job.DistanceMiles, job.JobStatus, job.PickupDate, job.PickupTimeFrom, job.PickupTimeTo,
 		job.DeliveryDate, job.DeliveryTimeFrom, job.DeliveryTimeTo, job.CutAmount, job.PaymentAmount,
 		job.WeightLbs, job.VolumeCuFt,
 	).Scan(&job.ID, &job.CreatedAt, &job.UpdatedAt)

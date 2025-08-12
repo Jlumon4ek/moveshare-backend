@@ -1,5 +1,26 @@
 basePath: /api
 definitions:
+  chat.CreateChatRequest:
+    properties:
+      job_id:
+        example: 123
+        type: integer
+      participant_id:
+        example: 456
+        type: integer
+    required:
+    - job_id
+    - participant_id
+    type: object
+  chat.CreateChatResponse:
+    properties:
+      chat_id:
+        type: integer
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   chat.SendMessageRequest:
     properties:
       message_text:
@@ -87,11 +108,6 @@ definitions:
         example: "90001"
         type: string
     type: object
-  jobs.HTTPError:
-    properties:
-      error:
-        type: string
-    type: object
   models.AddCardRequest:
     properties:
       payment_method_id:
@@ -131,6 +147,38 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  models.JobFilterOptions:
+    properties:
+      date_range:
+        properties:
+          max:
+            description: YYYY-MM-DD
+            type: string
+          min:
+            description: YYYY-MM-DD
+            type: string
+        type: object
+      max_distance_available:
+        properties:
+          max:
+            type: number
+        type: object
+      number_of_bedrooms:
+        items:
+          type: string
+        type: array
+      payout_range:
+        properties:
+          max:
+            type: number
+          min:
+            type: number
+        type: object
+      truck_sizes:
+        items:
+          type: string
+        type: array
     type: object
   models.PaymentMethodResponse:
     properties:
@@ -179,6 +227,8 @@ definitions:
       id:
         type: integer
       password:
+        type: string
+      profile_photo_id:
         type: string
       role:
         type: string
@@ -485,6 +535,61 @@ paths:
       summary: Get user chats
       tags:
       - Chat
+  /chats/:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new chat conversation between two users for a specific
+        job
+      parameters:
+      - description: Chat creation data
+        in: body
+        name: chat
+        required: true
+        schema:
+          $ref: '#/definitions/chat.CreateChatRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/chat.CreateChatResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new chat
+      tags:
+      - Chat
   /chats/{chatId}/messages:
     get:
       description: Returns messages for a specific chat with pagination
@@ -665,26 +770,61 @@ paths:
       summary: Обновить информацию о компании
       tags:
       - Company
-  /jobs/available-jobs/:
+  /jobs/filter-options/:
     get:
-      description: Retrieves all active jobs for the authenticated user
-      produces:
-      - application/json
+      description: Gets available filter options for jobs (unique values)
       responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.JobFilterOptions'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/jobs.HTTPError'
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/jobs.HTTPError'
+            additionalProperties:
+              type: string
+            type: object
       security:
       - BearerAuth: []
-      summary: Get active jobs
+      summary: Get filter options
       tags:
       - Jobs
   /payment/cards:
+    get:
+      consumes:
+      - application/json
+      description: Gets all active payment cards for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user payment cards
+      tags:
+      - Payment
     post:
       consumes:
       - application/json
@@ -731,6 +871,102 @@ paths:
       security:
       - BearerAuth: []
       summary: Add a payment card
+      tags:
+      - Payment
+  /payment/cards/{cardId}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a payment card for the authenticated user
+      parameters:
+      - description: Card ID
+        in: path
+        name: cardId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a payment card
+      tags:
+      - Payment
+  /payment/cards/{cardId}/default:
+    patch:
+      consumes:
+      - application/json
+      description: Sets a payment card as the default for the authenticated user
+      parameters:
+      - description: Card ID
+        in: path
+        name: cardId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set default payment card
       tags:
       - Payment
   /trucks/:
