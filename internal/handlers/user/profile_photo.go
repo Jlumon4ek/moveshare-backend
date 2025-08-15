@@ -26,7 +26,19 @@ func NewProfilePhotoHandler(userService service.UserService, minioService *servi
 	}
 }
 
-// POST /upload-profile-photo
+// UploadProfilePhoto godoc
+// @Summary Upload profile photo
+// @Description Uploads a profile photo for the authenticated user (max 5MB, JPG/JPEG/PNG/GIF only)
+// @Tags User
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param photo formData file true "Profile photo file (max 5MB)"
+// @Success 200 {object} models.UploadPhotoResponse "Photo uploaded successfully"
+// @Failure 400 {object} map[string]string "Bad request - invalid file type or size"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /user/upload-profile-photo [post]
 func (h *ProfilePhotoHandler) UploadProfilePhoto(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -87,7 +99,18 @@ func (h *ProfilePhotoHandler) UploadProfilePhoto(c *gin.Context) {
 	})
 }
 
-// GET /profile-photo/:user_id
+// GetProfilePhoto godoc
+// @Summary Get user profile photo
+// @Description Retrieves a presigned URL for a user's profile photo
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param user_id path int true "User ID"
+// @Success 200 {object} map[string]string "Profile photo URL"
+// @Failure 400 {object} map[string]string "Bad request - invalid user ID"
+// @Failure 404 {object} map[string]string "User or photo not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /user/profile-photo/{user_id} [get]
 func (h *ProfilePhotoHandler) GetProfilePhoto(c *gin.Context) {
 	userIDStr := c.Param("user_id")
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
@@ -119,7 +142,18 @@ func (h *ProfilePhotoHandler) GetProfilePhoto(c *gin.Context) {
 	})
 }
 
-// DELETE /profile-photo
+// DeleteProfilePhoto godoc
+// @Summary Delete profile photo
+// @Description Deletes the authenticated user's profile photo
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "Photo deleted successfully"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 404 {object} map[string]string "No profile photo to delete"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /user/profile-photo [delete]
 func (h *ProfilePhotoHandler) DeleteProfilePhoto(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {

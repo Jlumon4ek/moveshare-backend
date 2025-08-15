@@ -21,7 +21,7 @@ func NewJobRepository(db *pgxpool.Pool) *JobRepository {
 func (r *JobRepository) CreateJob(ctx context.Context, job *models.Job) error {
 	query := `
 		INSERT INTO jobs (
-			contractor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items, 
+			contractor_id, executor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items, 
 			inventory_list, hoisting, additional_services_description, estimated_crew_assistants,
 			truck_size, pickup_address, pickup_floor, pickup_building_type, pickup_walk_distance,
 			delivery_address, delivery_floor, delivery_building_type, delivery_walk_distance,
@@ -29,7 +29,7 @@ func (r *JobRepository) CreateJob(ctx context.Context, job *models.Job) error {
 			delivery_date, delivery_time_from, delivery_time_to, cut_amount, payment_amount,
 			weight_lbs, volume_cu_ft
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
+			$1, NULL, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
 			$19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30
 		) RETURNING id, created_at, updated_at`
 
@@ -48,7 +48,7 @@ func (r *JobRepository) CreateJob(ctx context.Context, job *models.Job) error {
 
 func (r *JobRepository) GetJobByID(ctx context.Context, jobID int64) (*models.Job, error) {
 	query := `
-		SELECT id, contractor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items,
+		SELECT id, contractor_id, executor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items,
 			   inventory_list, hoisting, additional_services_description, estimated_crew_assistants,
 			   truck_size, pickup_address, pickup_floor, pickup_building_type, pickup_walk_distance,
 			   delivery_address, delivery_floor, delivery_building_type, delivery_walk_distance,
@@ -59,7 +59,7 @@ func (r *JobRepository) GetJobByID(ctx context.Context, jobID int64) (*models.Jo
 
 	var job models.Job
 	err := r.db.QueryRow(ctx, query, jobID).Scan(
-		&job.ID, &job.ContractorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
+		&job.ID, &job.ContractorID, &job.ExecutorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
 		&job.BulkyItems, &job.InventoryList, &job.Hoisting, &job.AdditionalServicesDescription,
 		&job.EstimatedCrewAssistants, &job.TruckSize, &job.PickupAddress, &job.PickupFloor,
 		&job.PickupBuildingType, &job.PickupWalkDistance, &job.DeliveryAddress, &job.DeliveryFloor,
@@ -99,7 +99,8 @@ func (r *JobRepository) ClaimJob(ctx context.Context, jobID, userID int64) error
 
 	var contractorID int64
 	var status string
-	err = tx.QueryRow(ctx, "SELECT contractor_id, job_status FROM jobs WHERE id = $1", jobID).Scan(&contractorID, &status)
+	var executorID *int64
+	err = tx.QueryRow(ctx, "SELECT contractor_id, job_status, executor_id FROM jobs WHERE id = $1", jobID).Scan(&contractorID, &status, &executorID)
 	if err != nil {
 		return err
 	}
@@ -108,24 +109,19 @@ func (r *JobRepository) ClaimJob(ctx context.Context, jobID, userID int64) error
 		return fmt.Errorf("you cannot claim your own job")
 	}
 
-	if status != "active" {
+	if status != "open" {
 		return fmt.Errorf("job is not available for claiming")
 	}
 
-	_, err = tx.Exec(ctx, `
-		INSERT INTO job_applications (job_id, user_id) 
-		VALUES ($1, $2) 
-		ON CONFLICT (job_id, user_id) DO NOTHING`,
-		jobID, userID)
-	if err != nil {
-		return err
+	if executorID != nil {
+		return fmt.Errorf("job is already claimed by another user")
 	}
 
 	_, err = tx.Exec(ctx, `
 		UPDATE jobs 
-		SET job_status = 'pending', updated_at = CURRENT_TIMESTAMP 
-		WHERE id = $1`,
-		jobID)
+		SET executor_id = $1, job_status = 'claimed', updated_at = CURRENT_TIMESTAMP 
+		WHERE id = $2`,
+		userID, jobID)
 	if err != nil {
 		return err
 	}
@@ -135,7 +131,7 @@ func (r *JobRepository) ClaimJob(ctx context.Context, jobID, userID int64) error
 
 func (r *JobRepository) GetMyJobs(ctx context.Context, userID int64, offset, limit int) ([]models.Job, error) {
 	query := `
-		SELECT id, contractor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items,
+		SELECT id, contractor_id, executor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items,
 			   inventory_list, hoisting, additional_services_description, estimated_crew_assistants,
 			   truck_size, pickup_address, pickup_floor, pickup_building_type, pickup_walk_distance,
 			   delivery_address, delivery_floor, delivery_building_type, delivery_walk_distance,
@@ -157,7 +153,7 @@ func (r *JobRepository) GetMyJobs(ctx context.Context, userID int64, offset, lim
 	for rows.Next() {
 		var job models.Job
 		err := rows.Scan(
-			&job.ID, &job.ContractorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
+			&job.ID, &job.ContractorID, &job.ExecutorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
 			&job.BulkyItems, &job.InventoryList, &job.Hoisting, &job.AdditionalServicesDescription,
 			&job.EstimatedCrewAssistants, &job.TruckSize, &job.PickupAddress, &job.PickupFloor,
 			&job.PickupBuildingType, &job.PickupWalkDistance, &job.DeliveryAddress, &job.DeliveryFloor,
@@ -206,17 +202,16 @@ func (r *JobRepository) JobExists(ctx context.Context, jobID int64) (bool, error
 
 func (r *JobRepository) GetClaimedJobs(ctx context.Context, userID int64, offset, limit int) ([]models.Job, error) {
 	query := `
-		SELECT j.id, j.contractor_id, j.job_type, j.number_of_bedrooms, j.packing_boxes, j.bulky_items,
-			   j.inventory_list, j.hoisting, j.additional_services_description, j.estimated_crew_assistants,
-			   j.truck_size, j.pickup_address, j.pickup_floor, j.pickup_building_type, j.pickup_walk_distance,
-			   j.delivery_address, j.delivery_floor, j.delivery_building_type, j.delivery_walk_distance,
-			   j.distance_miles, j.job_status, j.pickup_date, j.pickup_time_from, j.pickup_time_to,
-			   j.delivery_date, j.delivery_time_from, j.delivery_time_to, j.cut_amount, j.payment_amount,
-			   j.weight_lbs, j.volume_cu_ft, j.created_at, j.updated_at
-		FROM jobs j
-		INNER JOIN job_applications ja ON j.id = ja.job_id
-		WHERE ja.user_id = $1
-		ORDER BY ja.created_at DESC
+		SELECT id, contractor_id, executor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items,
+			   inventory_list, hoisting, additional_services_description, estimated_crew_assistants,
+			   truck_size, pickup_address, pickup_floor, pickup_building_type, pickup_walk_distance,
+			   delivery_address, delivery_floor, delivery_building_type, delivery_walk_distance,
+			   distance_miles, job_status, pickup_date, pickup_time_from, pickup_time_to,
+			   delivery_date, delivery_time_from, delivery_time_to, cut_amount, payment_amount,
+			   weight_lbs, volume_cu_ft, created_at, updated_at
+		FROM jobs
+		WHERE executor_id = $1
+		ORDER BY updated_at DESC
 		LIMIT $2 OFFSET $3`
 
 	rows, err := r.db.Query(ctx, query, userID, limit, offset)
@@ -229,7 +224,7 @@ func (r *JobRepository) GetClaimedJobs(ctx context.Context, userID int64, offset
 	for rows.Next() {
 		var job models.Job
 		err := rows.Scan(
-			&job.ID, &job.ContractorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
+			&job.ID, &job.ContractorID, &job.ExecutorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
 			&job.BulkyItems, &job.InventoryList, &job.Hoisting, &job.AdditionalServicesDescription,
 			&job.EstimatedCrewAssistants, &job.TruckSize, &job.PickupAddress, &job.PickupFloor,
 			&job.PickupBuildingType, &job.PickupWalkDistance, &job.DeliveryAddress, &job.DeliveryFloor,
@@ -253,11 +248,7 @@ func (r *JobRepository) GetClaimedJobs(ctx context.Context, userID int64, offset
 
 func (r *JobRepository) GetCountClaimedJobs(ctx context.Context, userID int64) (int, error) {
 	var count int
-	query := `
-		SELECT COUNT(*) 
-		FROM jobs j
-		INNER JOIN job_applications ja ON j.id = ja.job_id
-		WHERE ja.user_id = $1`
+	query := `SELECT COUNT(*) FROM jobs WHERE executor_id = $1`
 	err := r.db.QueryRow(ctx, query, userID).Scan(&count)
 	return count, err
 }
@@ -273,13 +264,13 @@ func (r *JobRepository) GetAvailableJobs(ctx context.Context, userID int64, filt
 			   pickup_date, truck_size, weight_lbs, volume_cu_ft, payment_amount,
 			   contractor_id, number_of_bedrooms
 		FROM jobs 
-		WHERE contractor_id != $1 AND job_status = 'active'
+		WHERE contractor_id != $1 AND job_status = 'open' AND executor_id IS NULL
 	`
 
 	countQuery := `
 		SELECT COUNT(*) 
 		FROM jobs 
-		WHERE contractor_id != $1 AND job_status = 'active'
+		WHERE contractor_id != $1 AND job_status = 'open' AND executor_id IS NULL
 	`
 
 	// Массивы для условий и параметров
@@ -395,7 +386,7 @@ func (r *JobRepository) GetCountAvailableJobsWithFilters(ctx context.Context, us
 	countQuery := `
 		SELECT COUNT(*) 
 		FROM jobs 
-		WHERE contractor_id != $1 AND job_status = 'active'
+		WHERE contractor_id != $1 AND job_status = 'open' AND executor_id IS NULL
 	`
 
 	var conditions []string
@@ -471,7 +462,7 @@ func (r *JobRepository) GetCountAvailableJobs(ctx context.Context, userID int64,
 	countQuery := `
 		SELECT COUNT(*) 
 		FROM jobs 
-		WHERE contractor_id != $1 AND job_status = 'active'
+		WHERE contractor_id != $1 AND job_status = 'open' AND executor_id IS NULL
 	`
 
 	var conditions []string
@@ -551,7 +542,7 @@ func (r *JobRepository) GetFilterOptions(ctx context.Context, userID int64) (*mo
 	bedroomsQuery := `
 		SELECT DISTINCT number_of_bedrooms 
 		FROM jobs 
-		WHERE contractor_id != $1 AND job_status = 'active' 
+		WHERE contractor_id != $1 AND job_status = 'open' AND executor_id IS NULL 
 		AND number_of_bedrooms IS NOT NULL AND number_of_bedrooms != ''
 		ORDER BY number_of_bedrooms
 	`
@@ -574,7 +565,7 @@ func (r *JobRepository) GetFilterOptions(ctx context.Context, userID int64) (*mo
 	truckSizesQuery := `
 		SELECT DISTINCT truck_size 
 		FROM jobs 
-		WHERE contractor_id != $1 AND job_status = 'active' 
+		WHERE contractor_id != $1 AND job_status = 'open' AND executor_id IS NULL 
 		AND truck_size IS NOT NULL AND truck_size != ''
 		ORDER BY truck_size
 	`
@@ -597,7 +588,7 @@ func (r *JobRepository) GetFilterOptions(ctx context.Context, userID int64) (*mo
 	payoutRangeQuery := `
 		SELECT MIN(payment_amount), MAX(payment_amount)
 		FROM jobs 
-		WHERE contractor_id != $1 AND job_status = 'active'
+		WHERE contractor_id != $1 AND job_status = 'open' AND executor_id IS NULL
 	`
 
 	err = r.db.QueryRow(ctx, payoutRangeQuery, userID).Scan(
@@ -612,7 +603,7 @@ func (r *JobRepository) GetFilterOptions(ctx context.Context, userID int64) (*mo
 	maxDistanceQuery := `
 		SELECT MAX(distance_miles)
 		FROM jobs 
-		WHERE contractor_id != $1 AND job_status = 'active'
+		WHERE contractor_id != $1 AND job_status = 'open' AND executor_id IS NULL
 	`
 
 	err = r.db.QueryRow(ctx, maxDistanceQuery, userID).Scan(&options.MaxDistance.Max)
@@ -624,7 +615,7 @@ func (r *JobRepository) GetFilterOptions(ctx context.Context, userID int64) (*mo
 	dateRangeQuery := `
 		SELECT MIN(pickup_date), MAX(pickup_date)
 		FROM jobs 
-		WHERE contractor_id != $1 AND job_status = 'active'
+		WHERE contractor_id != $1 AND job_status = 'open' AND executor_id IS NULL
 	`
 
 	var minDate, maxDate time.Time
@@ -646,33 +637,23 @@ func (r *JobRepository) MarkJobCompleted(ctx context.Context, jobID, userID int6
 	}
 	defer tx.Rollback(ctx)
 
-	var exists bool
-	err = tx.QueryRow(ctx, `
-		SELECT EXISTS(
-			SELECT 1 
-			FROM job_applications 
-			WHERE job_id = $1 AND user_id = $2
-		)`, jobID, userID).Scan(&exists)
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		return fmt.Errorf("you have not applied for this job or it doesn't exist")
-	}
-
 	var currentStatus string
-	err = tx.QueryRow(ctx, "SELECT job_status FROM jobs WHERE id = $1", jobID).Scan(&currentStatus)
+	var executorID *int64
+	err = tx.QueryRow(ctx, "SELECT job_status, executor_id FROM jobs WHERE id = $1", jobID).Scan(&currentStatus, &executorID)
 	if err != nil {
 		return err
+	}
+
+	if executorID == nil || *executorID != userID {
+		return fmt.Errorf("you are not the executor of this job")
 	}
 
 	if currentStatus == "completed" {
 		return fmt.Errorf("job is already completed")
 	}
 
-	if currentStatus != "pending" && currentStatus != "active" {
-		return fmt.Errorf("job status must be pending or active to mark as completed")
+	if currentStatus != "claimed" && currentStatus != "in_progress" {
+		return fmt.Errorf("job status must be claimed or in_progress to mark as completed")
 	}
 
 	_, err = tx.Exec(ctx, `
@@ -714,7 +695,7 @@ func (r *JobRepository) GetJobsByIDs(ctx context.Context, userID int64, jobIDs [
 	for rows.Next() {
 		var job models.Job
 		err := rows.Scan(
-			&job.ID, &job.ContractorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
+			&job.ID, &job.ContractorID, &job.ExecutorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
 			&job.BulkyItems, &job.InventoryList, &job.Hoisting, &job.AdditionalServicesDescription,
 			&job.EstimatedCrewAssistants, &job.TruckSize, &job.PickupAddress, &job.PickupFloor,
 			&job.PickupBuildingType, &job.PickupWalkDistance, &job.DeliveryAddress, &job.DeliveryFloor,
@@ -740,8 +721,8 @@ func (r *JobRepository) GetJobsStats(ctx context.Context, userID int64) (models.
 	var stats models.JobsStats
 	stats.StatusDistribution = make(map[string]int)
 
-	// Get active jobs count created by this user
-	activeJobsQuery := `SELECT COUNT(*) FROM jobs WHERE job_status = 'active' AND contractor_id = $1`
+	// Get open jobs count created by this user
+	activeJobsQuery := `SELECT COUNT(*) FROM jobs WHERE job_status = 'open' AND contractor_id = $1`
 	err := r.db.QueryRow(ctx, activeJobsQuery, userID).Scan(&stats.ActiveJobsCount)
 	if err != nil {
 		return stats, err
@@ -781,4 +762,107 @@ func (r *JobRepository) GetJobsStats(ctx context.Context, userID int64) (models.
 	}
 
 	return stats, nil
+}
+
+
+func (r *JobRepository) GetUserWorkStats(ctx context.Context, userID int64) (models.UserWorkStats, error) {
+	var stats models.UserWorkStats
+
+	// Получаем количество завершенных работ (где пользователь исполнитель)
+	completedJobsQuery := `
+		SELECT COUNT(*)
+		FROM jobs
+		WHERE executor_id = $1 AND job_status = 'completed'`
+	
+	err := r.db.QueryRow(ctx, completedJobsQuery, userID).Scan(&stats.CompletedJobs)
+	if err != nil {
+		return stats, fmt.Errorf("failed to get completed jobs count: %w", err)
+	}
+
+	// Получаем заработок с завершенных работ (payment_amount - cut_amount)
+	earningsQuery := `
+		SELECT COALESCE(SUM(payment_amount - cut_amount), 0)
+		FROM jobs
+		WHERE executor_id = $1 AND job_status = 'completed'`
+	
+	err = r.db.QueryRow(ctx, earningsQuery, userID).Scan(&stats.Earnings)
+	if err != nil {
+		return stats, fmt.Errorf("failed to get earnings: %w", err)
+	}
+
+	// Получаем количество предстоящих работ (claimed, in_progress)
+	upcomingJobsQuery := `
+		SELECT COUNT(*)
+		FROM jobs
+		WHERE executor_id = $1 AND job_status IN ('claimed', 'in_progress')`
+	
+	err = r.db.QueryRow(ctx, upcomingJobsQuery, userID).Scan(&stats.UpcomingJobs)
+	if err != nil {
+		return stats, fmt.Errorf("failed to get upcoming jobs count: %w", err)
+	}
+
+	return stats, nil
+}
+
+func (r *JobRepository) GetTodayScheduleJobs(ctx context.Context, userID int64, offset, limit int) ([]models.Job, error) {
+	query := `
+		SELECT id, contractor_id, executor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items,
+			   inventory_list, hoisting, additional_services_description, estimated_crew_assistants,
+			   truck_size, pickup_address, pickup_floor, pickup_building_type, pickup_walk_distance,
+			   delivery_address, delivery_floor, delivery_building_type, delivery_walk_distance,
+			   distance_miles, job_status, pickup_date, pickup_time_from, pickup_time_to,
+			   delivery_date, delivery_time_from, delivery_time_to, cut_amount, payment_amount,
+			   weight_lbs, volume_cu_ft, created_at, updated_at
+		FROM jobs
+		WHERE executor_id = $1 
+		  AND DATE(pickup_date) = CURRENT_DATE
+		ORDER BY pickup_time_from ASC
+		LIMIT $2 OFFSET $3`
+
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query today's schedule jobs: %w", err)
+	}
+	defer rows.Close()
+
+	var jobs []models.Job
+	for rows.Next() {
+		var job models.Job
+		err := rows.Scan(
+			&job.ID, &job.ContractorID, &job.ExecutorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
+			&job.BulkyItems, &job.InventoryList, &job.Hoisting, &job.AdditionalServicesDescription,
+			&job.EstimatedCrewAssistants, &job.TruckSize, &job.PickupAddress, &job.PickupFloor,
+			&job.PickupBuildingType, &job.PickupWalkDistance, &job.DeliveryAddress, &job.DeliveryFloor,
+			&job.DeliveryBuildingType, &job.DeliveryWalkDistance, &job.DistanceMiles, &job.JobStatus,
+			&job.PickupDate, &job.PickupTimeFrom, &job.PickupTimeTo, &job.DeliveryDate,
+			&job.DeliveryTimeFrom, &job.DeliveryTimeTo, &job.CutAmount, &job.PaymentAmount,
+			&job.WeightLbs, &job.VolumeCuFt, &job.CreatedAt, &job.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan job: %w", err)
+		}
+		jobs = append(jobs, job)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return jobs, nil
+}
+
+func (r *JobRepository) GetCountTodayScheduleJobs(ctx context.Context, userID int64) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM jobs
+		WHERE executor_id = $1 
+		  AND DATE(pickup_date) = CURRENT_DATE`
+
+	var count int
+	err := r.db.QueryRow(ctx, query, userID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count today's schedule jobs: %w", err)
+	}
+
+	return count, nil
 }

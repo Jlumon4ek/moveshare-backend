@@ -6,8 +6,9 @@ import (
 )
 
 type Job struct {
-	ID           int64 `json:"id" db:"id"`
-	ContractorID int64 `json:"contractor_id" db:"contractor_id"`
+	ID           int64  `json:"id" db:"id"`
+	ContractorID int64  `json:"contractor_id" db:"contractor_id"`
+	ExecutorID   *int64 `json:"executor_id" db:"executor_id"`
 
 	// Job details
 	JobType          string `json:"job_type" db:"job_type"`
@@ -177,8 +178,6 @@ func (f *JobFilters) Validate() error {
 	return nil
 }
 
-// internal/models/job_model.go - добавить структуру для опций фильтров
-
 // JobFilterOptions представляет доступные опции для фильтрации
 type JobFilterOptions struct {
 	NumberOfBedrooms []string `json:"number_of_bedrooms"`
@@ -219,7 +218,14 @@ type ExportJobsRequest struct {
 
 // JobsStats представляет статистику по работам
 type JobsStats struct {
-	ActiveJobsCount     int                    `json:"active_jobs_count"`
-	NewJobsThisWeek     int                    `json:"new_jobs_this_week"`
-	StatusDistribution  map[string]int         `json:"status_distribution"`
+	ActiveJobsCount    int            `json:"active_jobs_count"`
+	NewJobsThisWeek    int            `json:"new_jobs_this_week"`
+	StatusDistribution map[string]int `json:"status_distribution"`
+}
+
+// UserWorkStats представляет статистику работ пользователя (на которые он откликался)
+type UserWorkStats struct {
+	CompletedJobs int     `json:"completed_jobs"`
+	Earnings      float64 `json:"earnings"`
+	UpcomingJobs  int     `json:"upcoming_jobs"`
 }

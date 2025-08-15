@@ -3,7 +3,9 @@
     "allow": [
       "Bash(go build:*)",
       "Bash(go mod:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(swag version:*)",
+      "Bash(swag init:*)"
     ],
     "deny": []
   }

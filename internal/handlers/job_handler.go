@@ -20,7 +20,19 @@ func NewJobHandler(jobService *service.JobService) *JobHandler {
 	return &JobHandler{jobService: jobService}
 }
 
-// POST /post-new-job
+// PostNewJob godoc
+// @Summary Create a new job
+// @Description Creates a new job posting for moving services
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param job body models.CreateJobRequest true "Job creation data"
+// @Success 201 {object} map[string]interface{} "Job created successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/post-new-job [post]
 func (h *JobHandler) PostNewJob(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -46,7 +58,18 @@ func (h *JobHandler) PostNewJob(c *gin.Context) {
 	})
 }
 
-// POST /claim-job/:id
+// ClaimJob godoc
+// @Summary Claim a job
+// @Description Allows a user to claim an available job
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Job ID"
+// @Success 200 {object} map[string]string "Job claimed successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /jobs/claim-job/{id} [post]
 func (h *JobHandler) ClaimJob(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -70,7 +93,18 @@ func (h *JobHandler) ClaimJob(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Job claimed successfully"})
 }
 
-// DELETE /delete-job/:id
+// DeleteJob godoc
+// @Summary Delete a job
+// @Description Deletes a job posting (only by job owner)
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Job ID"
+// @Success 200 {object} map[string]string "Job deleted successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /jobs/delete-job/{id} [delete]
 func (h *JobHandler) DeleteJob(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -94,7 +128,18 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Job deleted successfully"})
 }
 
-// GET /job/:id
+// GetJobByID godoc
+// @Summary Get job by ID
+// @Description Retrieves a specific job by its ID
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Job ID"
+// @Success 200 {object} map[string]interface{} "Job details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Router /jobs/{id} [get]
 func (h *JobHandler) GetJobByID(c *gin.Context) {
 	jobIDStr := c.Param("id")
 	jobID, err := strconv.ParseInt(jobIDStr, 10, 64)
@@ -112,6 +157,20 @@ func (h *JobHandler) GetJobByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"job": job})
 }
 
+// GetMyJobs godoc
+// @Summary Get my jobs
+// @Description Retrieves jobs created by the authenticated user with pagination
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(10)
+// @Success 200 {object} map[string]interface{} "User's jobs with pagination"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/my-jobs [get]
 func (h *JobHandler) GetMyJobs(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -144,6 +203,29 @@ func (h *JobHandler) GetMyJobs(c *gin.Context) {
 	})
 }
 
+// GetAvailableJobs godoc
+// @Summary Get available jobs
+// @Description Retrieves available jobs with optional filtering and pagination
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(10)
+// @Param number_of_bedrooms query string false "Number of bedrooms filter"
+// @Param origin query string false "Pickup address filter"
+// @Param destination query string false "Delivery address filter"
+// @Param max_distance query number false "Maximum distance in miles"
+// @Param date_start query string false "Start date filter (YYYY-MM-DD)"
+// @Param date_end query string false "End date filter (YYYY-MM-DD)"
+// @Param truck_size query string false "Truck size filter" Enums(Small, Medium, Large)
+// @Param payout_min query number false "Minimum payout amount"
+// @Param payout_max query number false "Maximum payout amount"
+// @Success 200 {object} map[string]interface{} "Available jobs with pagination and applied filters"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /jobs/available [get]
 func (h *JobHandler) GetAvailableJobs(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -223,6 +305,20 @@ func (h *JobHandler) GetJobFilterOptions(c *gin.Context) {
 	c.JSON(http.StatusOK, options)
 }
 
+// GetClaimedJobs godoc
+// @Summary Get claimed jobs
+// @Description Retrieves jobs claimed by the authenticated user with pagination
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(10)
+// @Success 200 {object} map[string]interface{} "Claimed jobs with pagination"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/claimed [get]
 func (h *JobHandler) GetClaimedJobs(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -255,7 +351,18 @@ func (h *JobHandler) GetClaimedJobs(c *gin.Context) {
 	})
 }
 
-// POST /mark-job-completed/:id
+// MarkJobCompleted godoc
+// @Summary Mark job as completed
+// @Description Marks a job as completed by the user who claimed it
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Job ID"
+// @Success 200 {object} map[string]string "Job marked as completed successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /jobs/mark-job-completed/{id} [post]
 func (h *JobHandler) MarkJobCompleted(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -279,7 +386,20 @@ func (h *JobHandler) MarkJobCompleted(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Job marked as completed successfully"})
 }
 
-// POST /export-jobs/
+// ExportJobs godoc
+// @Summary Export jobs to CSV
+// @Description Exports specified jobs to CSV format for download
+// @Tags Jobs
+// @Accept json
+// @Produce application/octet-stream
+// @Security BearerAuth
+// @Param export body models.ExportJobsRequest true "Job IDs to export"
+// @Success 200 {file} file "CSV file with job data"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 404 {object} map[string]string "No jobs found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/export [post]
 func (h *JobHandler) ExportJobs(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -388,7 +508,17 @@ func (h *JobHandler) formatIntPtr(ptr *int) string {
 	return fmt.Sprintf("%d", *ptr)
 }
 
-// GET /jobs/stats
+// GetJobsStats godoc
+// @Summary Get job statistics
+// @Description Retrieves job statistics for the authenticated user
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} models.JobsStats "Job statistics"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/stats [get]
 func (h *JobHandler) GetJobsStats(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -403,4 +533,78 @@ func (h *JobHandler) GetJobsStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, stats)
+}
+
+
+// GetUserWorkStats godoc
+// @Summary Get user work statistics
+// @Description Retrieves work statistics for the authenticated user (jobs they applied to)
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} models.UserWorkStats "User work statistics"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/user-work-stats [get]
+func (h *JobHandler) GetUserWorkStats(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	stats, err := h.jobService.GetUserWorkStats(userID.(int64))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user work statistics"})
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
+}
+
+// GetTodayScheduleJobs godoc
+// @Summary Get today's schedule jobs
+// @Description Retrieves today's jobs for the authenticated user (as executor) sorted by pickup time
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(10)
+// @Success 200 {object} map[string]interface{} "Today's schedule jobs with pagination"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/today-schedule [get]
+func (h *JobHandler) GetTodayScheduleJobs(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var pagination models.PaginationQuery
+	if err := c.ShouldBindQuery(&pagination); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	jobs, total, err := h.jobService.GetTodayScheduleJobs(userID.(int64), pagination.Page, pagination.Limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	totalPages := (total + pagination.Limit - 1) / pagination.Limit
+
+	c.JSON(http.StatusOK, gin.H{
+		"jobs": jobs,
+		"pagination": gin.H{
+			"page":        pagination.Page,
+			"limit":       pagination.Limit,
+			"total":       total,
+			"total_pages": totalPages,
+		},
+	})
 }

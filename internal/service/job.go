@@ -89,7 +89,7 @@ func (s *JobService) CreateJob(userID int64, req *models.CreateJobRequest) (*mod
 		DeliveryBuildingType:          req.DeliveryBuildingType,
 		DeliveryWalkDistance:          req.DeliveryWalkDistance,
 		DistanceMiles:                 req.DistanceMiles,
-		JobStatus:                     "active",
+		JobStatus:                     "open",
 		PickupDate:                    pickupDate,
 		PickupTimeFrom:                pickupTimeFrom,
 		PickupTimeTo:                  pickupTimeTo,
@@ -201,4 +201,26 @@ func (s *JobService) GetJobsForExport(userID int64, jobIDs []int64) ([]models.Jo
 func (s *JobService) GetJobsStats(userID int64) (models.JobsStats, error) {
 	ctx := context.Background()
 	return s.jobRepo.GetJobsStats(ctx, userID)
+}
+
+
+func (s *JobService) GetUserWorkStats(userID int64) (models.UserWorkStats, error) {
+	ctx := context.Background()
+	return s.jobRepo.GetUserWorkStats(ctx, userID)
+}
+
+func (s *JobService) GetTodayScheduleJobs(userID int64, page, limit int) ([]models.Job, int, error) {
+	ctx := context.Background()
+	offset := (page - 1) * limit
+	jobs, err := s.jobRepo.GetTodayScheduleJobs(ctx, userID, offset, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	total, err := s.jobRepo.GetCountTodayScheduleJobs(ctx, userID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return jobs, total, nil
 }

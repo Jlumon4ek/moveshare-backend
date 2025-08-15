@@ -1,9 +1,16 @@
+
+
+
+
+
+
 CREATE TABLE IF NOT EXISTS companies (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT REFERENCES users(id) UNIQUE,
+    company_name VARCHAR(255),
     email_address VARCHAR(255),
-    company_address TEXT,
-    company_state VARCHAR(50),
+    address TEXT,
+    state VARCHAR(50),
     mc_license_number VARCHAR(20),
     company_description TEXT,
     contact_person VARCHAR(100),

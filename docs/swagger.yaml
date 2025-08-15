@@ -148,6 +148,165 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.CityWithState:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      state_id:
+        type: integer
+      state_name:
+        type: string
+    type: object
+  models.ConfirmPaymentRequest:
+    properties:
+      payment_intent_id:
+        example: pi_1234567890
+        type: string
+    required:
+    - payment_intent_id
+    type: object
+  models.ConfirmPaymentResponse:
+    properties:
+      message:
+        type: string
+      payment_id:
+        type: integer
+      status:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.CreateJobRequest:
+    properties:
+      additional_services_description:
+        type: string
+      bulky_items:
+        type: boolean
+      cut_amount:
+        description: <- ДОБАВЬ ЭТО
+        type: number
+      delivery_address:
+        type: string
+      delivery_building_type:
+        type: string
+      delivery_date:
+        type: string
+      delivery_floor:
+        type: integer
+      delivery_time_from:
+        type: string
+      delivery_time_to:
+        type: string
+      delivery_walk_distance:
+        type: string
+      distance_miles:
+        type: number
+      estimated_crew_assistants:
+        type: string
+      hoisting:
+        type: boolean
+      inventory_list:
+        type: boolean
+      job_type:
+        type: string
+      number_of_bedrooms:
+        type: string
+      packing_boxes:
+        type: boolean
+      payment_amount:
+        type: number
+      pickup_address:
+        type: string
+      pickup_building_type:
+        type: string
+      pickup_date:
+        type: string
+      pickup_floor:
+        type: integer
+      pickup_time_from:
+        type: string
+      pickup_time_to:
+        type: string
+      pickup_walk_distance:
+        type: string
+      truck_size:
+        type: string
+      volume_cu_ft:
+        type: number
+      weight_lbs:
+        type: number
+    required:
+    - delivery_address
+    - delivery_date
+    - delivery_time_from
+    - delivery_time_to
+    - job_type
+    - payment_amount
+    - pickup_address
+    - pickup_date
+    - pickup_time_from
+    - pickup_time_to
+    - truck_size
+    type: object
+  models.CreatePaymentRequest:
+    properties:
+      amount_cents:
+        description: $29.99
+        example: 2999
+        type: integer
+      description:
+        example: Payment for job posting
+        type: string
+      job_id:
+        example: 123
+        type: integer
+      payment_method_id:
+        description: Опционально, если не указано - берем default
+        example: 456
+        type: integer
+    required:
+    - amount_cents
+    - job_id
+    type: object
+  models.CreatePaymentResponse:
+    properties:
+      client_secret:
+        type: string
+      payment_intent_id:
+        type: string
+      requires_confirmation:
+        type: boolean
+      status:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.CreateReviewRequest:
+    properties:
+      comment:
+        type: string
+      job_id:
+        type: integer
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+    required:
+    - job_id
+    - rating
+    type: object
+  models.ExportJobsRequest:
+    properties:
+      job_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - job_ids
+    type: object
   models.JobFilterOptions:
     properties:
       date_range:
@@ -179,6 +338,17 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  models.JobsStats:
+    properties:
+      active_jobs_count:
+        type: integer
+      new_jobs_this_week:
+        type: integer
+      status_distribution:
+        additionalProperties:
+          type: integer
+        type: object
     type: object
   models.PaymentMethodResponse:
     properties:
@@ -218,6 +388,20 @@ definitions:
         example: Sabalaq
         type: string
     type: object
+  models.State:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.UploadPhotoResponse:
+    properties:
+      message:
+        type: string
+      profile_photo_id:
+        type: string
+    type: object
   models.User:
     properties:
       created_at:
@@ -238,6 +422,34 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  models.UserRatingStats:
+    properties:
+      average_rating:
+        type: number
+      five_stars:
+        type: integer
+      four_stars:
+        type: integer
+      one_star:
+        type: integer
+      three_stars:
+        type: integer
+      total_reviews:
+        type: integer
+      two_stars:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  models.UserWorkStats:
+    properties:
+      completed_jobs:
+        type: integer
+      earnings:
+        type: number
+      upcoming_jobs:
+        type: integer
     type: object
   models.VerificationFile:
     properties:
@@ -770,6 +982,296 @@ paths:
       summary: Обновить информацию о компании
       tags:
       - Company
+  /jobs/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a specific job by its ID
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Job details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Job not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get job by ID
+      tags:
+      - Jobs
+  /jobs/available:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves available jobs with optional filtering and pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Number of bedrooms filter
+        in: query
+        name: number_of_bedrooms
+        type: string
+      - description: Pickup address filter
+        in: query
+        name: origin
+        type: string
+      - description: Delivery address filter
+        in: query
+        name: destination
+        type: string
+      - description: Maximum distance in miles
+        in: query
+        name: max_distance
+        type: number
+      - description: Start date filter (YYYY-MM-DD)
+        in: query
+        name: date_start
+        type: string
+      - description: End date filter (YYYY-MM-DD)
+        in: query
+        name: date_end
+        type: string
+      - description: Truck size filter
+        enum:
+        - Small
+        - Medium
+        - Large
+        in: query
+        name: truck_size
+        type: string
+      - description: Minimum payout amount
+        in: query
+        name: payout_min
+        type: number
+      - description: Maximum payout amount
+        in: query
+        name: payout_max
+        type: number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Available jobs with pagination and applied filters
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get available jobs
+      tags:
+      - Jobs
+  /jobs/claim-job/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Allows a user to claim an available job
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Job claimed successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Claim a job
+      tags:
+      - Jobs
+  /jobs/claimed:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves jobs claimed by the authenticated user with pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Claimed jobs with pagination
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get claimed jobs
+      tags:
+      - Jobs
+  /jobs/delete-job/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a job posting (only by job owner)
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Job deleted successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a job
+      tags:
+      - Jobs
+  /jobs/export:
+    post:
+      consumes:
+      - application/json
+      description: Exports specified jobs to CSV format for download
+      parameters:
+      - description: Job IDs to export
+        in: body
+        name: export
+        required: true
+        schema:
+          $ref: '#/definitions/models.ExportJobsRequest'
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: CSV file with job data
+          schema:
+            type: file
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: No jobs found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Export jobs to CSV
+      tags:
+      - Jobs
   /jobs/filter-options/:
     get:
       description: Gets available filter options for jobs (unique values)
@@ -795,6 +1297,301 @@ paths:
       summary: Get filter options
       tags:
       - Jobs
+  /jobs/mark-job-completed/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Marks a job as completed by the user who claimed it
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Job marked as completed successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark job as completed
+      tags:
+      - Jobs
+  /jobs/my-jobs:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves jobs created by the authenticated user with pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User's jobs with pagination
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my jobs
+      tags:
+      - Jobs
+  /jobs/post-new-job:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new job posting for moving services
+      parameters:
+      - description: Job creation data
+        in: body
+        name: job
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateJobRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Job created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new job
+      tags:
+      - Jobs
+  /jobs/stats:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves job statistics for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Job statistics
+          schema:
+            $ref: '#/definitions/models.JobsStats'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get job statistics
+      tags:
+      - Jobs
+  /jobs/today-schedule:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves today's jobs for the authenticated user (as executor)
+        sorted by pickup time
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Today's schedule jobs with pagination
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get today's schedule jobs
+      tags:
+      - Jobs
+  /jobs/user-work-stats:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves work statistics for the authenticated user (jobs they
+        applied to)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User work statistics
+          schema:
+            $ref: '#/definitions/models.UserWorkStats'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user work statistics
+      tags:
+      - Jobs
+  /location/cities:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of cities, optionally filtered by state
+      parameters:
+      - description: State ID to filter cities
+        in: query
+        name: state_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of cities
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.CityWithState'
+              type: array
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get cities
+      tags:
+      - Location
+  /location/states:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of all available states
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of states
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.State'
+              type: array
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all states
+      tags:
+      - Location
   /payment/cards:
     get:
       consumes:
@@ -969,6 +1766,301 @@ paths:
       summary: Set default payment card
       tags:
       - Payment
+  /payment/confirm-payment:
+    post:
+      consumes:
+      - application/json
+      description: Confirms a payment intent after user completes 3D Secure or other
+        authentication
+      parameters:
+      - description: Payment confirmation data
+        in: body
+        name: confirmation
+        required: true
+        schema:
+          $ref: '#/definitions/models.ConfirmPaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ConfirmPaymentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Confirm a payment
+      tags:
+      - Payment
+  /payment/create-intent:
+    post:
+      consumes:
+      - application/json
+      description: Creates a payment intent for a job using user's saved card
+      parameters:
+      - description: Payment data
+        in: body
+        name: payment
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreatePaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.CreatePaymentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a payment
+      tags:
+      - Payment
+  /payment/history:
+    get:
+      consumes:
+      - application/json
+      description: Gets paginated payment history for the authenticated user
+      parameters:
+      - default: 10
+        description: Limit number of payments returned
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get payment history
+      tags:
+      - Payment
+  /reviews:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new review for a completed job
+      parameters:
+      - description: Review creation data
+        in: body
+        name: review
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Review created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new review
+      tags:
+      - Reviews
+  /reviews/average/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the average rating and total review count for a specific
+        user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User average rating and review count
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user average rating
+      tags:
+      - Reviews
+  /reviews/stats/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves detailed rating statistics for a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User rating statistics
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/models.UserRatingStats'
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user rating statistics
+      tags:
+      - Reviews
+  /reviews/user/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves reviews for a specific user with pagination
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User reviews with pagination
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user reviews
+      tags:
+      - Reviews
   /trucks/:
     get:
       description: Retrieves all trucks associated with the authenticated user.
@@ -1109,6 +2201,126 @@ paths:
       summary: Get truck by ID
       tags:
       - Trucks
+  /user/profile-photo:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes the authenticated user's profile photo
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Photo deleted successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: No profile photo to delete
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete profile photo
+      tags:
+      - User
+  /user/profile-photo/{user_id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a presigned URL for a user's profile photo
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile photo URL
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request - invalid user ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: User or photo not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user profile photo
+      tags:
+      - User
+  /user/upload-profile-photo:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a profile photo for the authenticated user (max 5MB, JPG/JPEG/PNG/GIF
+        only)
+      parameters:
+      - description: Profile photo file (max 5MB)
+        in: formData
+        name: photo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Photo uploaded successfully
+          schema:
+            $ref: '#/definitions/models.UploadPhotoResponse'
+        "400":
+          description: Bad request - invalid file type or size
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upload profile photo
+      tags:
+      - User
   /verification/:
     post:
       consumes:

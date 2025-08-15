@@ -17,7 +17,18 @@ func NewReviewHandler(reviewService *service.ReviewService) *ReviewHandler {
 	return &ReviewHandler{reviewService: reviewService}
 }
 
-// POST /reviews
+// CreateReview godoc
+// @Summary Create a new review
+// @Description Creates a new review for a completed job
+// @Tags Reviews
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param review body models.CreateReviewRequest true "Review creation data"
+// @Success 201 {object} map[string]interface{} "Review created successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /reviews [post]
 func (h *ReviewHandler) CreateReview(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -43,7 +54,19 @@ func (h *ReviewHandler) CreateReview(c *gin.Context) {
 	})
 }
 
-// GET /reviews/user/:id
+// GetUserReviews godoc
+// @Summary Get user reviews
+// @Description Retrieves reviews for a specific user with pagination
+// @Tags Reviews
+// @Accept json
+// @Produce json
+// @Param id path int true "User ID"
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(10)
+// @Success 200 {object} map[string]interface{} "User reviews with pagination"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /reviews/user/{id} [get]
 func (h *ReviewHandler) GetUserReviews(c *gin.Context) {
 	userIDStr := c.Param("id")
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
@@ -77,7 +100,17 @@ func (h *ReviewHandler) GetUserReviews(c *gin.Context) {
 	})
 }
 
-// GET /reviews/stats/:id
+// GetUserRatingStats godoc
+// @Summary Get user rating statistics
+// @Description Retrieves detailed rating statistics for a specific user
+// @Tags Reviews
+// @Accept json
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} map[string]models.UserRatingStats "User rating statistics"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /reviews/stats/{id} [get]
 func (h *ReviewHandler) GetUserRatingStats(c *gin.Context) {
 	userIDStr := c.Param("id")
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
@@ -95,7 +128,17 @@ func (h *ReviewHandler) GetUserRatingStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
 
-// GET /reviews/average/:id
+// GetUserAverageRating godoc
+// @Summary Get user average rating
+// @Description Retrieves the average rating and total review count for a specific user
+// @Tags Reviews
+// @Accept json
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} map[string]interface{} "User average rating and review count"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /reviews/average/{id} [get]
 func (h *ReviewHandler) GetUserAverageRating(c *gin.Context) {
 	userIDStr := c.Param("id")
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)

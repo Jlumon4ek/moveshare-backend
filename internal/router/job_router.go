@@ -21,6 +21,8 @@ func SetupJobRoutes(r gin.IRouter, jobHandler *handlers.JobHandler, jwtAuth serv
 		protected.GET("/my-jobs/", jobHandler.GetMyJobs)
 		protected.GET("/:id/details/", jobHandler.GetJobByID)
 		protected.GET("/claimed-jobs/", jobHandler.GetClaimedJobs)
+		protected.GET("/today-schedule/", jobHandler.GetTodayScheduleJobs)
+		protected.GET("/user-work-stats/", jobHandler.GetUserWorkStats)
 		protected.POST("/mark-job-completed/:id/", jobHandler.MarkJobCompleted)
 		protected.POST("/export-jobs/", jobHandler.ExportJobs)
 	}
