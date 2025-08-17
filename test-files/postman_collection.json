@@ -1,0 +1,180 @@
+{
+  "info": {
+    "name": "Job Files Upload API",
+    "description": "Collection for testing job file upload functionality",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api"
+    },
+    {
+      "key": "jwt_token",
+      "value": ""
+    },
+    {
+      "key": "job_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"your-email@example.com\",\n  \"password\": \"your-password\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    pm.environment.set('jwt_token', response.token);",
+              "    console.log('JWT token saved:', response.token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Create Job",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"job_type\": \"Moving\",\n  \"truck_size\": \"Large\",\n  \"pickup_address\": \"123 Main St, City\",\n  \"delivery_address\": \"456 Oak Ave, City\",\n  \"pickup_date\": \"2025-01-20\",\n  \"pickup_time_from\": \"09:00\",\n  \"pickup_time_to\": \"10:00\",\n  \"delivery_date\": \"2025-01-20\",\n  \"delivery_time_from\": \"14:00\",\n  \"delivery_time_to\": \"15:00\",\n  \"payment_amount\": 500.00\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/jobs/post-new-job/",
+          "host": ["{{base_url}}"],
+          "path": ["jobs", "post-new-job", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "    const response = pm.response.json();",
+              "    pm.environment.set('job_id', response.job.id);",
+              "    console.log('Job ID saved:', response.job.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Claim Job",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/jobs/claim-job/{{job_id}}/",
+          "host": ["{{base_url}}"],
+          "path": ["jobs", "claim-job", "{{job_id}}", ""]
+        }
+      }
+    },
+    {
+      "name": "4. Upload Files (MAIN)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "files",
+              "type": "file",
+              "src": "test-files/test-document.txt"
+            },
+            {
+              "key": "files",
+              "type": "file",
+              "src": "test-files/inventory.csv"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/jobs/upload-files/{{job_id}}/",
+          "host": ["{{base_url}}"],
+          "path": ["jobs", "upload-files", "{{job_id}}", ""]
+        }
+      }
+    },
+    {
+      "name": "5. Get Claimed Jobs (with files)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/jobs/claimed-jobs/",
+          "host": ["{{base_url}}"],
+          "path": ["jobs", "claimed-jobs", ""]
+        }
+      }
+    },
+    {
+      "name": "6. Get Job Details",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/jobs/{{job_id}}/details/",
+          "host": ["{{base_url}}"],
+          "path": ["jobs", "{{job_id}}", "details", ""]
+        }
+      }
+    }
+  ]
+}

@@ -13,12 +13,14 @@ import (
 type JobService struct {
 	jobRepo       *repository.JobRepository
 	googleMapsCfg *config.GoogleMapsConfig
+	minioRepo     *repository.Repository
 }
 
-func NewJobService(jobRepo *repository.JobRepository, googleMapsCfg *config.GoogleMapsConfig) *JobService {
+func NewJobService(jobRepo *repository.JobRepository, googleMapsCfg *config.GoogleMapsConfig, minioRepo *repository.Repository) *JobService {
 	return &JobService{
 		jobRepo:       jobRepo,
 		googleMapsCfg: googleMapsCfg,
+		minioRepo:     minioRepo,
 	}
 }
 
@@ -89,7 +91,7 @@ func (s *JobService) CreateJob(userID int64, req *models.CreateJobRequest) (*mod
 		DeliveryBuildingType:          req.DeliveryBuildingType,
 		DeliveryWalkDistance:          req.DeliveryWalkDistance,
 		DistanceMiles:                 req.DistanceMiles,
-		JobStatus:                     "open",
+		JobStatus:                     "active",
 		PickupDate:                    pickupDate,
 		PickupTimeFrom:                pickupTimeFrom,
 		PickupTimeTo:                  pickupTimeTo,
@@ -180,6 +182,17 @@ func (s *JobService) GetClaimedJobs(userID int64, page, limit int) ([]models.Job
 		return nil, 0, err
 	}
 
+	// Получаем файлы для каждой работы
+	for i := range jobs {
+		files, err := s.GetJobFiles(jobs[i].ID)
+		if err != nil {
+			// Логируем ошибку, но не прерываем работу
+			fmt.Printf("Failed to get files for job %d: %v\n", jobs[i].ID, err)
+			continue
+		}
+		jobs[i].Files = files
+	}
+
 	total, err := s.jobRepo.GetCountClaimedJobs(ctx, userID)
 	if err != nil {
 		return nil, 0, err
@@ -209,6 +222,16 @@ func (s *JobService) GetUserWorkStats(userID int64) (models.UserWorkStats, error
 	return s.jobRepo.GetUserWorkStats(ctx, userID)
 }
 
+func (s *JobService) GetPendingJobs(userID int64, limit int) ([]models.Job, error) {
+	ctx := context.Background()
+	jobs, err := s.jobRepo.GetPendingJobs(ctx, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return jobs, nil
+}
+
 func (s *JobService) GetTodayScheduleJobs(userID int64, page, limit int) ([]models.Job, int, error) {
 	ctx := context.Background()
 	offset := (page - 1) * limit
@@ -223,4 +246,61 @@ func (s *JobService) GetTodayScheduleJobs(userID int64, page, limit int) ([]mode
 	}
 
 	return jobs, total, nil
+}
+
+func (s *JobService) UploadJobFile(jobID int64, fileID, fileName string, fileSize int64, contentType string) error {
+	ctx := context.Background()
+	return s.jobRepo.InsertJobFile(ctx, jobID, fileID, fileName, fileSize, contentType)
+}
+
+func (s *JobService) GetJobFiles(jobID int64) ([]models.JobFile, error) {
+	ctx := context.Background()
+	files, err := s.jobRepo.GetJobFiles(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Генерируем URL для каждого файла
+	for i := range files {
+		fileURL, err := s.minioRepo.GetFileURL(ctx, "job-files", files[i].FileID, 24*time.Hour)
+		if err != nil {
+			// Если не можем получить URL, логируем ошибку но не прерываем
+			fmt.Printf("Failed to get URL for file %s: %v\n", files[i].FileID, err)
+			continue
+		}
+		files[i].FileURL = fileURL
+	}
+
+	return files, nil
+}
+
+func (s *JobService) MarkJobAsPending(jobID int64) error {
+	ctx := context.Background()
+	return s.jobRepo.UpdateJobStatus(ctx, jobID, "pending")
+}
+
+func (s *JobService) UploadJobFileWithType(jobID int64, fileID, fileName string, fileSize int64, contentType, fileType string) error {
+	ctx := context.Background()
+	return s.jobRepo.InsertJobFileWithType(ctx, jobID, fileID, fileName, fileSize, contentType, fileType)
+}
+
+func (s *JobService) GetJobFilesByType(jobID int64, fileType string) ([]models.JobFile, error) {
+	ctx := context.Background()
+	files, err := s.jobRepo.GetJobFilesByType(ctx, jobID, fileType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Генерируем URL для каждого файла
+	for i := range files {
+		fileURL, err := s.minioRepo.GetFileURL(ctx, "job-files", files[i].FileID, 24*time.Hour)
+		if err != nil {
+			// Если не можем получить URL, логируем ошибку но не прерываем
+			fmt.Printf("Failed to get URL for file %s: %v\n", files[i].FileID, err)
+			continue
+		}
+		files[i].FileURL = fileURL
+	}
+
+	return files, nil
 }

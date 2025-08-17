@@ -7,7 +7,7 @@ import (
 
 func (r *repository) FindUserByID(ctx context.Context, userID int64) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password, role, status, profile_photo_id, created_at, updated_at
+		SELECT id, username, email, password, COALESCE(role, 'user') as role, status, profile_photo_id, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`

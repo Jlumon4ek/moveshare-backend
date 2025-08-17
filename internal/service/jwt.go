@@ -10,10 +10,18 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+type TokenClaims struct {
+	UserID   int64  `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+}
+
 type JWTAuth interface {
-	GenerateAccessToken(userID int64, username, email string) (string, error)
+	GenerateAccessToken(userID int64, username, email, role string) (string, error)
 	GenerateRefreshToken(userID int64) (string, error)
 	ValidateToken(tokenString string) (int64, error)
+	ValidateTokenAndExtractClaims(tokenString string) (*TokenClaims, error)
 }
 
 type jwtAuth struct {
@@ -49,11 +57,12 @@ func NewJWTAuth(privateKeyPath, publicKeyPath string) (JWTAuth, error) {
 	}, nil
 }
 
-func (j *jwtAuth) GenerateAccessToken(userID int64, username, email string) (string, error) {
+func (j *jwtAuth) GenerateAccessToken(userID int64, username, email, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":      userID,
 		"username": username,
 		"email":    email,
+		"role":     role,
 		"exp":      time.Now().Add(500 * time.Minute).Unix(),
 		"iat":      time.Now().Unix(),
 	}
@@ -98,4 +107,43 @@ func (j *jwtAuth) ValidateToken(tokenString string) (int64, error) {
 
 	log.Printf("Token invalid or claims unreadable: %v", token.Claims)
 	return 0, fmt.Errorf("invalid token")
+}
+
+func (j *jwtAuth) ValidateTokenAndExtractClaims(tokenString string) (*TokenClaims, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return j.publicKey, nil
+	})
+
+	if err != nil {
+		log.Printf("Token validation error: %v", err)
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userID, ok := claims["sub"].(float64)
+		if !ok {
+			log.Printf("Invalid user ID in token claims: %v", claims)
+			return nil, fmt.Errorf("invalid user ID in token")
+		}
+
+		username, _ := claims["username"].(string)
+		email, _ := claims["email"].(string)
+		role, _ := claims["role"].(string)
+
+		tokenClaims := &TokenClaims{
+			UserID:   int64(userID),
+			Username: username,
+			Email:    email,
+			Role:     role,
+		}
+
+		log.Printf("Token validated successfully for user ID: %d, role: %s", int64(userID), role)
+		return tokenClaims, nil
+	}
+
+	log.Printf("Token invalid or claims unreadable: %v", token.Claims)
+	return nil, fmt.Errorf("invalid token")
 }

@@ -115,8 +115,10 @@ func (r *ReviewRepository) ReviewExists(ctx context.Context, jobID, reviewerID i
 }
 
 func (r *ReviewRepository) GetJobDetails(ctx context.Context, jobID int64) (contractorID int64, claimedBy int64, err error) {
-	jobQuery := `SELECT contractor_id FROM jobs WHERE id = $1`
-	err = r.db.QueryRow(ctx, jobQuery, jobID).Scan(&contractorID)
+	jobQuery := `SELECT contractor_id, executor_id FROM jobs WHERE id = $1`
+	
+	var executorID *int64
+	err = r.db.QueryRow(ctx, jobQuery, jobID).Scan(&contractorID, &executorID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return 0, 0, fmt.Errorf("job with id %d not found", jobID)
@@ -124,10 +126,9 @@ func (r *ReviewRepository) GetJobDetails(ctx context.Context, jobID int64) (cont
 		return 0, 0, err
 	}
 
-	applicationQuery := `SELECT user_id FROM job_applications WHERE job_id = $1`
-	err = r.db.QueryRow(ctx, applicationQuery, jobID).Scan(&claimedBy)
-	if err != nil && err != pgx.ErrNoRows {
-		return 0, 0, err
+	// Если есть исполнитель, возвращаем его ID
+	if executorID != nil {
+		claimedBy = *executorID
 	}
 
 	return contractorID, claimedBy, nil

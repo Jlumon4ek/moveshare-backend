@@ -15,7 +15,7 @@ import (
 // @Accept       json
 // @Produce      json
 // @Param        userID   path      int    true  "User ID"
-// @Param        status   query     string true  "New status for the user" Enums(Approved, Rejected, Pending)
+// @Param        status   query     string true  "New status for the user" Enums(Verified Mover, Banned, On waiting)
 // @Success      200      {object}  map[string]string
 // @Failure      400      {object}  map[string]string
 // @Failure      500      {object}  map[string]string

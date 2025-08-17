@@ -20,6 +20,7 @@ func UserRouter(r gin.IRouter, userService service.UserService, minioService *se
 	userGroup := r.Group("/user")
 	userGroup.Use(middleware.AuthMiddleware(jwtAuth))
 	{
+		userGroup.GET("/my-status", user.GetMyStatus(userService))
 		userGroup.POST("/upload-profile-photo", profilePhotoHandler.UploadProfilePhoto)
 		userGroup.GET("/profile-photo/:user_id", profilePhotoHandler.GetProfilePhoto)
 		userGroup.DELETE("/profile-photo", profilePhotoHandler.DeleteProfilePhoto)

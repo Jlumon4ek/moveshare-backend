@@ -14,10 +14,15 @@ func (r *repository) CreateUser(ctx context.Context, user *models.User) error {
 	}
 
 	query := `
-		INSERT INTO users (username, email, password)
-		VALUES ($1, $2, $3)
+		INSERT INTO users (username, email, password, role)
+		VALUES ($1, $2, $3, COALESCE($4, 'user'))
 		RETURNING id
 	`
 
-	return r.db.QueryRow(ctx, query, user.Username, user.Email, string(hashedPassword)).Scan(&user.ID)
+	role := user.Role
+	if role == "" {
+		role = "user"
+	}
+
+	return r.db.QueryRow(ctx, query, user.Username, user.Email, string(hashedPassword), role).Scan(&user.ID)
 }

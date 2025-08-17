@@ -33,7 +33,7 @@ func SignIn(userService service.UserService, jwtAuth service.JWTAuth) gin.Handle
 			return
 		}
 
-		accessToken, err := jwtAuth.GenerateAccessToken(user.ID, user.Username, user.Email)
+		accessToken, err := jwtAuth.GenerateAccessToken(user.ID, user.Username, user.Email, user.Role)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to generate access token"})
 			return

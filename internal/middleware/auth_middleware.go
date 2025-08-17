@@ -27,7 +27,7 @@ func AuthMiddleware(jwtAuth service.JWTAuth) gin.HandlerFunc {
 		}
 
 		tokenString := parts[1]
-		userID, err := jwtAuth.ValidateToken(tokenString)
+		tokenClaims, err := jwtAuth.ValidateTokenAndExtractClaims(tokenString)
 		if err != nil {
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has expired"})
@@ -38,7 +38,10 @@ func AuthMiddleware(jwtAuth service.JWTAuth) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("userID", userID)
+		c.Set("userID", tokenClaims.UserID)
+		c.Set("username", tokenClaims.Username)
+		c.Set("email", tokenClaims.Email)
+		c.Set("role", tokenClaims.Role)
 		c.Next()
 	}
 }

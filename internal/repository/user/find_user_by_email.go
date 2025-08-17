@@ -7,7 +7,7 @@ import (
 
 func (r *repository) FindUserByEmailOrUsername(ctx context.Context, identifier string) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password
+		SELECT id, username, email, password, COALESCE(role, 'user') as role
 		FROM users
 		WHERE email = $1 OR username = $1
 	`
@@ -18,6 +18,7 @@ func (r *repository) FindUserByEmailOrUsername(ctx context.Context, identifier s
 		&user.Username,
 		&user.Email,
 		&user.Password,
+		&user.Role,
 	)
 	if err != nil {
 		return nil, err

@@ -2,22 +2,31 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/csv"
 	"fmt"
 	"moveshare/internal/models"
+	"moveshare/internal/repository"
 	"moveshare/internal/service"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type JobHandler struct {
-	jobService *service.JobService
+	jobService  *service.JobService
+	minioRepo   *repository.Repository
 }
 
-func NewJobHandler(jobService *service.JobService) *JobHandler {
-	return &JobHandler{jobService: jobService}
+func NewJobHandler(jobService *service.JobService, minioRepo *repository.Repository) *JobHandler {
+	return &JobHandler{
+		jobService: jobService,
+		minioRepo:  minioRepo,
+	}
 }
 
 // PostNewJob godoc
@@ -563,6 +572,43 @@ func (h *JobHandler) GetUserWorkStats(c *gin.Context) {
 	c.JSON(http.StatusOK, stats)
 }
 
+// GetPendingJobs godoc
+// @Summary Get pending jobs
+// @Description Retrieves jobs that the authenticated user has claimed but not completed, sorted by pickup date (closest first)
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "Items limit" default(10)
+// @Success 200 {object} map[string]interface{} "Pending jobs"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/pending-jobs [get]
+func (h *JobHandler) GetPendingJobs(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	limitStr := c.DefaultQuery("limit", "10")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+
+	jobs, err := h.jobService.GetPendingJobs(userID.(int64), limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"jobs": jobs,
+	})
+}
+
 // GetTodayScheduleJobs godoc
 // @Summary Get today's schedule jobs
 // @Description Retrieves today's jobs for the authenticated user (as executor) sorted by pickup time
@@ -606,5 +652,461 @@ func (h *JobHandler) GetTodayScheduleJobs(c *gin.Context) {
 			"total":       total,
 			"total_pages": totalPages,
 		},
+	})
+}
+
+// UploadJobFiles godoc
+// @Summary Upload files for a claimed job
+// @Description Uploads files for a job that the user has claimed and changes status to pending
+// @Tags Jobs
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Job ID"
+// @Param files formData file true "Files to upload" multiple
+// @Success 200 {object} map[string]interface{} "Files uploaded successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Forbidden - job not claimed by user"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/upload-files/{id} [post]
+func (h *JobHandler) UploadJobFiles(c *gin.Context) {
+	fmt.Printf("=== UploadJobFiles START ===\n")
+	
+	userID, exists := c.Get("userID")
+	if !exists {
+		fmt.Printf("ERROR: User not authenticated\n")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	fmt.Printf("User ID: %v\n", userID)
+
+	jobIDStr := c.Param("id")
+	fmt.Printf("Job ID string: %s\n", jobIDStr)
+	jobID, err := strconv.ParseInt(jobIDStr, 10, 64)
+	if err != nil {
+		fmt.Printf("ERROR: Invalid job ID: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job ID"})
+		return
+	}
+	fmt.Printf("Job ID parsed: %d\n", jobID)
+
+	// Проверяем, что пользователь является исполнителем этой работы
+	fmt.Printf("Getting job by ID...\n")
+	job, err := h.jobService.GetJobByID(jobID)
+	if err != nil {
+		fmt.Printf("ERROR: Job not found: %v\n", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Job not found"})
+		return
+	}
+	fmt.Printf("Job found - ID: %d, Status: %s, ExecutorID: %v\n", job.ID, job.JobStatus, job.ExecutorID)
+
+	if job.ExecutorID == nil {
+		fmt.Printf("ERROR: Job has no executor (ExecutorID is nil)\n")
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not the executor of this job"})
+		return
+	}
+	
+	if *job.ExecutorID != userID.(int64) {
+		fmt.Printf("ERROR: User %v is not the executor (executor: %v)\n", userID, *job.ExecutorID)
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not the executor of this job"})
+		return
+	}
+	fmt.Printf("User is confirmed executor\n")
+
+	if job.JobStatus != "claimed" {
+		fmt.Printf("ERROR: Job status is '%s', expected 'claimed'\n", job.JobStatus)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Job must be in claimed status to upload files. Current status: %s", job.JobStatus)})
+		return
+	}
+	fmt.Printf("Job status check passed\n")
+
+	// Получаем файлы из формы
+	fmt.Printf("Parsing multipart form...\n")
+	form, err := c.MultipartForm()
+	if err != nil {
+		fmt.Printf("ERROR: Failed to parse form: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse form"})
+		return
+	}
+	fmt.Printf("Form parsed successfully\n")
+
+	files := form.File["files"]
+	fmt.Printf("Files found: %d\n", len(files))
+	if len(files) == 0 {
+		fmt.Printf("ERROR: No files provided\n")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No files provided"})
+		return
+	}
+	
+	for i, file := range files {
+		fmt.Printf("File %d: %s (size: %d bytes)\n", i+1, file.Filename, file.Size)
+	}
+
+	var uploadedFiles []models.JobFile
+	ctx := context.Background()
+
+	for _, file := range files {
+		// Генерируем уникальный ID для файла
+		fileID := uuid.New().String()
+		
+		// Определяем объект в MinIO
+		objectName := fmt.Sprintf("jobs/%d/%s-%s", jobID, fileID, filepath.Base(file.Filename))
+
+		// Открываем файл
+		src, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to open file %s", file.Filename)})
+			return
+		}
+		defer src.Close()
+
+		// Читаем содержимое файла
+		fileData := make([]byte, file.Size)
+		_, err = src.Read(fileData)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to read file %s", file.Filename)})
+			return
+		}
+
+		// Загружаем в MinIO
+		err = h.minioRepo.UploadBytes(ctx, "job-files", objectName, fileData, file.Header.Get("Content-Type"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to upload file %s", file.Filename)})
+			return
+		}
+
+		// Сохраняем информацию о файле в БД
+		err = h.jobService.UploadJobFile(jobID, objectName, file.Filename, file.Size, file.Header.Get("Content-Type"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to save file info for %s", file.Filename)})
+			return
+		}
+
+		uploadedFiles = append(uploadedFiles, models.JobFile{
+			JobID:       jobID,
+			FileID:      objectName,
+			FileName:    file.Filename,
+			FileSize:    file.Size,
+			ContentType: file.Header.Get("Content-Type"),
+			UploadedAt:  time.Now(),
+		})
+	}
+
+	// Меняем статус работы на pending
+	err = h.jobService.MarkJobAsPending(jobID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update job status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "Files uploaded successfully and job status changed to pending",
+		"uploaded_files": uploadedFiles,
+		"files_count":    len(uploadedFiles),
+	})
+}
+
+// GetJobFiles godoc
+// @Summary Get files for a specific job
+// @Description Retrieves all files uploaded for a specific job
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Job ID"
+// @Success 200 {object} map[string]interface{} "Job files"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Router /jobs/{id}/files [get]
+func (h *JobHandler) GetJobFiles(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	jobIDStr := c.Param("id")
+	jobID, err := strconv.ParseInt(jobIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job ID"})
+		return
+	}
+
+	// Проверяем что пользователь имеет доступ к этой работе
+	job, err := h.jobService.GetJobByID(jobID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Job not found"})
+		return
+	}
+
+	// Доступ имеют: создатель работы или исполнитель
+	if job.ContractorID != userID.(int64) && (job.ExecutorID == nil || *job.ExecutorID != userID.(int64)) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have access to this job"})
+		return
+	}
+
+	files, err := h.jobService.GetJobFiles(jobID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get job files"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"job_id": jobID,
+		"files":  files,
+		"count":  len(files),
+	})
+}
+
+// UploadVerificationDocuments godoc
+// @Summary Upload verification documents for a claimed job
+// @Description Uploads verification documents for a job that the user has claimed and changes status to pending
+// @Tags Jobs
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Job ID"
+// @Param files formData file true "Verification documents to upload" multiple
+// @Success 200 {object} map[string]interface{} "Documents uploaded successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Forbidden - job not claimed by user"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/upload-verification-documents/{id} [post]
+func (h *JobHandler) UploadVerificationDocuments(c *gin.Context) {
+	h.uploadFilesWithType(c, "verification_document")
+}
+
+// UploadWorkPhotos godoc
+// @Summary Upload work photos for a claimed job
+// @Description Uploads work photos for a job that the user has claimed and changes status to pending
+// @Tags Jobs
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Job ID"
+// @Param files formData file true "Work photos to upload" multiple
+// @Success 200 {object} map[string]interface{} "Photos uploaded successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Forbidden - job not claimed by user"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /jobs/upload-work-photos/{id} [post]
+func (h *JobHandler) UploadWorkPhotos(c *gin.Context) {
+	h.uploadFilesWithType(c, "work_photo")
+}
+
+// uploadFilesWithType - общий метод для загрузки файлов с указанным типом
+func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
+	fmt.Printf("=== uploadFilesWithType START (type: %s) ===\n", fileType)
+	
+	userID, exists := c.Get("userID")
+	if !exists {
+		fmt.Printf("ERROR: User not authenticated\n")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	fmt.Printf("User ID: %v\n", userID)
+
+	jobIDStr := c.Param("id")
+	fmt.Printf("Job ID string: %s\n", jobIDStr)
+	jobID, err := strconv.ParseInt(jobIDStr, 10, 64)
+	if err != nil {
+		fmt.Printf("ERROR: Invalid job ID: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job ID"})
+		return
+	}
+	fmt.Printf("Job ID parsed: %d\n", jobID)
+
+	// Проверяем, что пользователь является исполнителем этой работы
+	fmt.Printf("Getting job by ID...\n")
+	job, err := h.jobService.GetJobByID(jobID)
+	if err != nil {
+		fmt.Printf("ERROR: Job not found: %v\n", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Job not found"})
+		return
+	}
+	fmt.Printf("Job found - ID: %d, Status: %s, ExecutorID: %v\n", job.ID, job.JobStatus, job.ExecutorID)
+
+	if job.ExecutorID == nil {
+		fmt.Printf("ERROR: Job has no executor (ExecutorID is nil)\n")
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not the executor of this job"})
+		return
+	}
+	
+	if *job.ExecutorID != userID.(int64) {
+		fmt.Printf("ERROR: User %v is not the executor (executor: %v)\n", userID, *job.ExecutorID)
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not the executor of this job"})
+		return
+	}
+	fmt.Printf("User is confirmed executor\n")
+
+	if job.JobStatus != "claimed" && job.JobStatus != "pending" {
+		fmt.Printf("ERROR: Job status is '%s', expected 'claimed' or 'pending'\n", job.JobStatus)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Job must be in claimed or pending status to upload files. Current status: %s", job.JobStatus)})
+		return
+	}
+	fmt.Printf("Job status check passed\n")
+
+	// Получаем файлы из формы
+	fmt.Printf("Parsing multipart form...\n")
+	form, err := c.MultipartForm()
+	if err != nil {
+		fmt.Printf("ERROR: Failed to parse form: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse form"})
+		return
+	}
+	fmt.Printf("Form parsed successfully\n")
+
+	files := form.File["files"]
+	fmt.Printf("Files found: %d\n", len(files))
+	if len(files) == 0 {
+		fmt.Printf("ERROR: No files provided\n")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No files provided"})
+		return
+	}
+	
+	for i, file := range files {
+		fmt.Printf("File %d: %s (size: %d bytes)\n", i+1, file.Filename, file.Size)
+	}
+
+	var uploadedFiles []models.JobFile
+	ctx := context.Background()
+
+	for _, file := range files {
+		// Генерируем уникальный ID для файла
+		fileID := uuid.New().String()
+		
+		// Определяем объект в MinIO в зависимости от типа файла
+		var objectName string
+		if fileType == "verification_document" {
+			objectName = fmt.Sprintf("jobs/%d/verification/%s-%s", jobID, fileID, filepath.Base(file.Filename))
+		} else {
+			objectName = fmt.Sprintf("jobs/%d/work-photos/%s-%s", jobID, fileID, filepath.Base(file.Filename))
+		}
+
+		// Открываем файл
+		src, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to open file %s", file.Filename)})
+			return
+		}
+		defer src.Close()
+
+		// Читаем содержимое файла
+		fileData := make([]byte, file.Size)
+		_, err = src.Read(fileData)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to read file %s", file.Filename)})
+			return
+		}
+
+		// Загружаем в MinIO
+		err = h.minioRepo.UploadBytes(ctx, "job-files", objectName, fileData, file.Header.Get("Content-Type"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to upload file %s", file.Filename)})
+			return
+		}
+
+		// Сохраняем информацию о файле в БД
+		err = h.jobService.UploadJobFileWithType(jobID, objectName, file.Filename, file.Size, file.Header.Get("Content-Type"), fileType)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to save file info for %s", file.Filename)})
+			return
+		}
+
+		uploadedFiles = append(uploadedFiles, models.JobFile{
+			JobID:       jobID,
+			FileID:      objectName,
+			FileName:    file.Filename,
+			FileSize:    file.Size,
+			ContentType: file.Header.Get("Content-Type"),
+			FileType:    fileType,
+			UploadedAt:  time.Now(),
+		})
+	}
+
+	// Меняем статус на pending при загрузке любых файлов
+	err = h.jobService.MarkJobAsPending(jobID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update job status"})
+		return
+	}
+
+	var message string
+	if fileType == "verification_document" {
+		message = "Verification documents uploaded successfully and job status changed to pending"
+	} else {
+		message = "Work photos uploaded successfully and job status changed to pending"
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        message,
+		"uploaded_files": uploadedFiles,
+		"files_count":    len(uploadedFiles),
+		"file_type":      fileType,
+	})
+}
+
+// GetJobFilesByType godoc
+// @Summary Get files for a specific job by type
+// @Description Retrieves files uploaded for a specific job filtered by file type
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Job ID"
+// @Param type query string true "File type" Enums(verification_document, work_photo)
+// @Success 200 {object} map[string]interface{} "Job files by type"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Router /jobs/{id}/files/by-type [get]
+func (h *JobHandler) GetJobFilesByType(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	jobIDStr := c.Param("id")
+	jobID, err := strconv.ParseInt(jobIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job ID"})
+		return
+	}
+
+	fileType := c.Query("type")
+	if fileType != "verification_document" && fileType != "work_photo" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file type. Must be 'verification_document' or 'work_photo'"})
+		return
+	}
+
+	// Проверяем что пользователь имеет доступ к этой работе
+	job, err := h.jobService.GetJobByID(jobID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Job not found"})
+		return
+	}
+
+	// Доступ имеют: создатель работы или исполнитель
+	if job.ContractorID != userID.(int64) && (job.ExecutorID == nil || *job.ExecutorID != userID.(int64)) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have access to this job"})
+		return
+	}
+
+	files, err := h.jobService.GetJobFilesByType(jobID, fileType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get job files"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"job_id":    jobID,
+		"file_type": fileType,
+		"files":     files,
+		"count":     len(files),
 	})
 }

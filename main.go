@@ -15,6 +15,7 @@ import (
 	"moveshare/internal/repository/truck"
 	"moveshare/internal/repository/user"
 	"moveshare/internal/repository/verification"
+	"moveshare/internal/repository/admin"
 
 	"moveshare/internal/router"
 	"moveshare/internal/service"
@@ -57,8 +58,8 @@ func main() {
 		log.Fatalf("failed to initialize JWT auth: %v", err)
 	}
 
-	// adminRepo := admin.NewAdminRepository(db)
-	// adminService := service.NewAdminService(adminRepo)
+	adminRepo := admin.NewAdminRepository(db)
+	adminService := service.NewAdminService(adminRepo)
 
 	userRepo := user.NewUserRepository(db)
 	userService := service.NewUserService(userRepo)
@@ -113,8 +114,8 @@ func main() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	jobRepo := repository.NewJobRepository(db)
-	jobService := service.NewJobService(jobRepo, &cfg.GoogleMaps)
-	jobHandler := handlers.NewJobHandler(jobService)
+	jobService := service.NewJobService(jobRepo, &cfg.GoogleMaps, minioRepo)
+	jobHandler := handlers.NewJobHandler(jobService, minioRepo)
 
 	locationRepo := repository.NewLocationRepository(db)
 	locationService := service.NewLocationService(locationRepo)
@@ -135,7 +136,7 @@ func main() {
 
 	apiGroup := r.Group("/api")
 	{
-		// router.AdminRouter(apiGroup, jwtAuth, adminService)
+		router.AdminRouter(apiGroup, jwtAuth, adminService)
 		router.UserRouter(apiGroup, userService, minioService, jwtAuth)
 		router.CompanyRouter(apiGroup, companyService, jwtAuth)
 		router.TruckRouter(apiGroup, truckService, jwtAuth)

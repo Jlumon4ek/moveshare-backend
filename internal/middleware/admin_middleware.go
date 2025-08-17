@@ -10,7 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AdminMiddleware(jwtAuth service.JWTAuth, adminService service.AdminService) gin.HandlerFunc {
+func AdminMiddleware(jwtAuth service.JWTAuth) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -27,7 +27,7 @@ func AdminMiddleware(jwtAuth service.JWTAuth, adminService service.AdminService)
 		}
 
 		tokenString := parts[1]
-		userID, err := jwtAuth.ValidateToken(tokenString)
+		tokenClaims, err := jwtAuth.ValidateTokenAndExtractClaims(tokenString)
 		if err != nil {
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has expired"})
@@ -38,21 +38,16 @@ func AdminMiddleware(jwtAuth service.JWTAuth, adminService service.AdminService)
 			return
 		}
 
-		role, err := adminService.GetUserRole(c.Request.Context(), userID)
-
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user role"})
-			c.Abort()
-			return
-		}
-
-		if role != "admin" {
+		if tokenClaims.Role != "admin" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to access this resource"})
 			c.Abort()
 			return
 		}
 
-		c.Set("userID", userID)
+		c.Set("userID", tokenClaims.UserID)
+		c.Set("username", tokenClaims.Username)
+		c.Set("email", tokenClaims.Email)
+		c.Set("role", tokenClaims.Role)
 		c.Next()
 	}
 }

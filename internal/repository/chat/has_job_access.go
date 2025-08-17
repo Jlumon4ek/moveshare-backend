@@ -3,15 +3,16 @@ package chat
 import "context"
 
 func (r *repository) HasJobAccess(ctx context.Context, jobID, userID1, userID2 int64) (bool, error) {
-	// Получаем информацию о задании
+	// Получаем информацию о задании (contractor_id и executor_id)
 	jobQuery := `
-		SELECT contractor_id 
+		SELECT contractor_id, executor_id 
 		FROM jobs 
 		WHERE id = $1
 	`
 
-	var jobOwnerID int64
-	err := r.db.QueryRow(ctx, jobQuery, jobID).Scan(&jobOwnerID)
+	var contractorID int64
+	var executorID *int64
+	err := r.db.QueryRow(ctx, jobQuery, jobID).Scan(&contractorID, &executorID)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return false, nil // Задание не найдено или недоступно
@@ -19,26 +20,25 @@ func (r *repository) HasJobAccess(ctx context.Context, jobID, userID1, userID2 i
 		return false, err
 	}
 
-	// Проверяем, что один из пользователей является владельцем задания
-	if jobOwnerID == userID1 || jobOwnerID == userID2 {
-		// Проверяем, что другой пользователь подавал заявку на это задание
-		applicationQuery := `
-			SELECT EXISTS(
-				SELECT 1 
-				FROM job_applications ja
-				WHERE ja.job_id = $1 
-				AND ja.user_id IN ($2, $3)
-			)
-		`
-
-		var hasApplication bool
-		err = r.db.QueryRow(ctx, applicationQuery, jobID, userID1, userID2).Scan(&hasApplication)
-		if err != nil {
-			return false, err
-		}
-
-		return hasApplication, nil
+	// Проверяем, что оба пользователя имеют доступ к этой работе
+	// Доступ есть у: заказчика (contractor) и исполнителя (executor)
+	allowedUsers := []int64{contractorID}
+	if executorID != nil {
+		allowedUsers = append(allowedUsers, *executorID)
 	}
 
-	return false, nil
+	// Проверяем что оба пользователя в списке разрешенных
+	user1HasAccess := false
+	user2HasAccess := false
+
+	for _, allowedUserID := range allowedUsers {
+		if allowedUserID == userID1 {
+			user1HasAccess = true
+		}
+		if allowedUserID == userID2 {
+			user2HasAccess = true
+		}
+	}
+
+	return user1HasAccess && user2HasAccess, nil
 }

@@ -1,0 +1,12 @@
+This is a test document for job file upload.
+Job ID: 123
+Uploaded by: Test User
+Date: 2025-01-16
+
+Content:
+- Moving inventory list
+- Photos of items
+- Special instructions
+- Contact information
+
+This file is for testing the job file upload functionality.

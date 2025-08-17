@@ -57,6 +57,9 @@ type Job struct {
 	WeightLbs  float64 `json:"weight_lbs" db:"weight_lbs"`
 	VolumeCuFt float64 `json:"volume_cu_ft" db:"volume_cu_ft"`
 
+	// Files
+	Files []JobFile `json:"files,omitempty"`
+
 	// Timestamps
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
@@ -68,6 +71,18 @@ type JobApplication struct {
 	UserID    int64     `json:"user_id" db:"user_id"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+type JobFile struct {
+	ID          int64     `json:"id" db:"id"`
+	JobID       int64     `json:"job_id" db:"job_id"`
+	FileID      string    `json:"file_id" db:"file_id"`
+	FileName    string    `json:"file_name" db:"file_name"`
+	FileSize    int64     `json:"file_size" db:"file_size"`
+	ContentType string    `json:"content_type" db:"content_type"`
+	FileType    string    `json:"file_type" db:"file_type"` // verification_document or work_photo
+	UploadedAt  time.Time `json:"uploaded_at" db:"uploaded_at"`
+	FileURL     string    `json:"file_url,omitempty"`
 }
 
 // Request DTOs
