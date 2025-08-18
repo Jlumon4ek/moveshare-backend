@@ -43,8 +43,6 @@ services:
       PGADMIN_LISTEN_PORT: 80
     ports:
       - "0.0.0.0:5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
     networks:
       - default
 
