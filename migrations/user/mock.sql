@@ -1,0 +1,22 @@
+INSERT INTO users (username, email, password, role, status, profile_photo_id, stripe_customer_id)
+VALUES
+('alex.johnson', 'alex.johnson@mail.com', 'hashed_password_1', 'user', 'Verified Mover', NULL, NULL),
+('sophia.martinez', 'sophia.martinez@mail.com', 'hashed_password_2', 'user', 'Banned', NULL, NULL),
+('daniel.williams', 'daniel.williams@mail.com', 'hashed_password_3', 'user', 'On Waiting', NULL, NULL),
+('olivia.brown', 'olivia.brown@mail.com', 'hashed_password_4', 'user', 'Verified Mover', NULL, NULL),
+('ethan.smith', 'ethan.smith@mail.com', 'hashed_password_5', 'user', 'Banned', NULL, NULL),
+('mia.davis', 'mia.davis@mail.com', 'hashed_password_6', 'user', 'On Waiting', NULL, NULL),
+('noah.miller', 'noah.miller@mail.com', 'hashed_password_7', 'user', 'Verified Mover', NULL, NULL),
+('ava.garcia', 'ava.garcia@mail.com', 'hashed_password_8', 'user', 'On Waiting', NULL, NULL),
+('liam.rodriguez', 'liam.rodriguez@mail.com', 'hashed_password_9', 'user', 'Banned', NULL, NULL),
+('isabella.moore', 'isabella.moore@mail.com', 'hashed_password_10', 'user', 'Verified Mover', NULL, NULL),
+('mason.taylor', 'mason.taylor@mail.com', 'hashed_password_11', 'user', 'On Waiting', NULL, NULL),
+('amelia.anderson', 'amelia.anderson@mail.com', 'hashed_password_12', 'user', 'Banned', NULL, NULL),
+('logan.thomas', 'logan.thomas@mail.com', 'hashed_password_13', 'user', 'Verified Mover', NULL, NULL),
+('harper.jackson', 'harper.jackson@mail.com', 'hashed_password_14', 'user', 'On Waiting', NULL, NULL),
+('lucas.white', 'lucas.white@mail.com', 'hashed_password_15', 'user', 'Banned', NULL, NULL),
+('ella.harris', 'ella.harris@mail.com', 'hashed_password_16', 'user', 'Verified Mover', NULL, NULL),
+('james.clark', 'james.clark@mail.com', 'hashed_password_17', 'user', 'On Waiting', NULL, NULL),
+('scarlett.lewis', 'scarlett.lewis@mail.com', 'hashed_password_18', 'user', 'Banned', NULL, NULL),
+('benjamin.walker', 'benjamin.walker@mail.com', 'hashed_password_19', 'user', 'Verified Mover', NULL, NULL),
+('grace.young', 'grace.young@mail.com', 'hashed_password_20', 'user', 'On Waiting', NULL, NULL);

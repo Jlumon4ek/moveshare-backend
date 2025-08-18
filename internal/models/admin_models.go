@@ -57,3 +57,19 @@ type UserFullInfo struct {
 	Payments     []Payment               `json:"payments"`
 	Verification []VerificationFile      `json:"verification"`
 }
+
+type PaginatedUsersResponse struct {
+	Users  []UserCompanyInfo `json:"users"`
+	Total  int               `json:"total"`
+	Page   int               `json:"page"`
+	Limit  int               `json:"limit"`
+	Offset int               `json:"offset"`
+}
+
+type PaginatedJobsResponse struct {
+	Jobs   []JobManagementInfo `json:"jobs"`
+	Total  int                 `json:"total"`
+	Page   int                 `json:"page"`
+	Limit  int                 `json:"limit"`
+	Offset int                 `json:"offset"`
+}

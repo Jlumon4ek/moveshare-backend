@@ -16,6 +16,7 @@ import (
 	"moveshare/internal/repository/user"
 	"moveshare/internal/repository/verification"
 	"moveshare/internal/repository/admin"
+	"moveshare/internal/repository/password_reset"
 
 	"moveshare/internal/router"
 	"moveshare/internal/service"
@@ -83,6 +84,11 @@ func main() {
 	paymentRepo := payment.NewPaymentRepository(db)
 	paymentService := service.NewPaymentService(paymentRepo, stripeService, userService)
 
+	// Password reset services
+	passwordResetRepo := password_reset.NewPasswordResetRepository(db)
+	emailService := service.NewEmailService()
+	passwordResetService := service.NewPasswordResetService(passwordResetRepo, emailService)
+
 	r := gin.Default()
 
 	config := cors.DefaultConfig()
@@ -137,7 +143,7 @@ func main() {
 	apiGroup := r.Group("/api")
 	{
 		router.AdminRouter(apiGroup, jwtAuth, adminService)
-		router.UserRouter(apiGroup, userService, minioService, jwtAuth)
+		router.UserRouter(apiGroup, userService, minioService, jwtAuth, passwordResetService)
 		router.CompanyRouter(apiGroup, companyService, jwtAuth)
 		router.TruckRouter(apiGroup, truckService, jwtAuth)
 		router.VerificationRouter(apiGroup, verificationService, jwtAuth)

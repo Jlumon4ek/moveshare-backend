@@ -12,7 +12,9 @@ type AdminService interface {
 	GetChatConversationCount(ctx context.Context) (int, error)
 	GetActiveJobsCount(ctx context.Context) (int, error)
 	GetUsersList(ctx context.Context, limit, offset int) ([]models.UserCompanyInfo, error)
-	GetJobsList(ctx context.Context, limit, offset int) ([]models.JobManagementInfo, error)
+	GetUsersListTotal(ctx context.Context) (int, error)
+	GetJobsList(ctx context.Context, limit, offset int, statuses []string) ([]models.JobManagementInfo, error)
+	GetJobsListTotal(ctx context.Context, statuses []string) (int, error)
 	// GetActiveJobs(ctx context.Context, limit, offset int) ([]models.Job, error)
 	ChangeUserStatus(ctx context.Context, userID int, newStatus string) error
 	GetUserRole(ctx context.Context, userID int64) (string, error)
@@ -50,8 +52,16 @@ func (s *adminService) GetUsersList(ctx context.Context, limit, offset int) ([]m
 	return s.adminRepo.GetUsersList(ctx, limit, offset)
 }
 
-func (s *adminService) GetJobsList(ctx context.Context, limit, offset int) ([]models.JobManagementInfo, error) {
-	return s.adminRepo.GetJobsList(ctx, limit, offset)
+func (s *adminService) GetJobsList(ctx context.Context, limit, offset int, statuses []string) ([]models.JobManagementInfo, error) {
+	return s.adminRepo.GetJobsList(ctx, limit, offset, statuses)
+}
+
+func (s *adminService) GetUsersListTotal(ctx context.Context) (int, error) {
+	return s.adminRepo.GetUsersListTotal(ctx)
+}
+
+func (s *adminService) GetJobsListTotal(ctx context.Context, statuses []string) (int, error) {
+	return s.adminRepo.GetJobsListTotal(ctx, statuses)
 }
 
 // func (s *adminService) GetActiveJobs(ctx context.Context, limit, offset int) ([]models.Job, error) {

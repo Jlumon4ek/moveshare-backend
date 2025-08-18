@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"moveshare/internal/models"
 	"moveshare/internal/service"
 	"net/http"
 	"strconv"
@@ -15,7 +16,7 @@ import (
 // @Produce json
 // @Param limit query int false "Limit number of users returned" default(10)
 // @Param offset query int false "Offset for pagination" default(0)
-// @Success 200 {object} []models.User
+// @Success 200 {object} models.PaginatedUsersResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /admin/users [get]
@@ -51,6 +52,29 @@ func GetUsersList(adminService service.AdminService) gin.HandlerFunc {
 			})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"users": users})
+
+		total, err := adminService.GetUsersListTotal(c.Request.Context())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to get users total count",
+				"details": err.Error(),
+			})
+			return
+		}
+
+		page := offset/limit + 1
+		if offset == 0 && limit > 0 {
+			page = 1
+		}
+
+		response := models.PaginatedUsersResponse{
+			Users:  users,
+			Total:  total,
+			Page:   page,
+			Limit:  limit,
+			Offset: offset,
+		}
+
+		c.JSON(http.StatusOK, response)
 	}
 }

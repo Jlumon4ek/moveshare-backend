@@ -13,7 +13,9 @@ type AdminRepository interface {
 	GetChatConversationCount(ctx context.Context) (int, error)
 	GetActiveJobsCount(ctx context.Context) (int, error)
 	GetUsersList(ctx context.Context, limit, offset int) ([]models.UserCompanyInfo, error)
-	GetJobsList(ctx context.Context, limit, offset int) ([]models.JobManagementInfo, error)
+	GetUsersListTotal(ctx context.Context) (int, error)
+	GetJobsList(ctx context.Context, limit, offset int, statuses []string) ([]models.JobManagementInfo, error)
+	GetJobsListTotal(ctx context.Context, statuses []string) (int, error)
 	// GetAllJobs(ctx context.Context, limit, offset int) ([]models.Job, error)
 	ChangeUserStatus(ctx context.Context, userID int, newStatus string) error
 	GetUserRole(ctx context.Context, userID int64) (string, error)

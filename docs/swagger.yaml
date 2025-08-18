@@ -340,6 +340,18 @@ definitions:
     required:
     - job_ids
     type: object
+  models.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  models.ForgotPasswordResponse:
+    properties:
+      message:
+        type: string
+    type: object
   models.Job:
     properties:
       additional_services_description:
@@ -508,6 +520,36 @@ definitions:
           type: integer
         type: object
     type: object
+  models.PaginatedJobsResponse:
+    properties:
+      jobs:
+        items:
+          $ref: '#/definitions/models.JobManagementInfo'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  models.PaginatedUsersResponse:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/models.UserCompanyInfo'
+        type: array
+    type: object
   models.Payment:
     properties:
       amount_cents:
@@ -553,6 +595,25 @@ definitions:
         type: integer
       is_default:
         type: boolean
+    type: object
+  models.ResetPasswordRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+      new_password:
+        minLength: 6
+        type: string
+    required:
+    - code
+    - email
+    - new_password
+    type: object
+  models.ResetPasswordResponse:
+    properties:
+      message:
+        type: string
     type: object
   models.Review:
     properties:
@@ -681,6 +742,21 @@ definitions:
       username:
         type: string
     type: object
+  models.UserCompanyInfo:
+    properties:
+      company_name:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      trucks_number:
+        type: integer
+    type: object
   models.UserFullInfo:
     properties:
       company:
@@ -747,6 +823,23 @@ definitions:
       url:
         type: string
     type: object
+  models.VerifyResetCodeRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    required:
+    - code
+    - email
+    type: object
+  models.VerifyResetCodeResponse:
+    properties:
+      message:
+        type: string
+      valid:
+        type: boolean
+    type: object
   user.RefreshTokenRequest:
     properties:
       refresh_token:
@@ -785,7 +878,8 @@ paths:
       - Admin
   /admin/jobs:
     get:
-      description: Gets a paginated list of jobs with limit and offset
+      description: Gets a paginated list of jobs with limit, offset and optional status
+        filter
       parameters:
       - default: 10
         description: Limit number of jobs returned
@@ -797,17 +891,18 @@ paths:
         in: query
         name: offset
         type: integer
+      - description: Filter by job status. Single status or comma-separated multiple
+          (claimed, active, pending, canceled, completed)
+        in: query
+        name: status
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              items:
-                $ref: '#/definitions/models.JobManagementInfo'
-              type: array
-            type: object
+            $ref: '#/definitions/models.PaginatedJobsResponse'
         "400":
           description: Bad Request
           schema:
@@ -954,9 +1049,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.User'
-            type: array
+            $ref: '#/definitions/models.PaginatedUsersResponse'
         "400":
           description: Bad Request
           schema:
@@ -1395,6 +1488,46 @@ paths:
       summary: Обновить информацию о компании
       tags:
       - Company
+  /forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Send password reset code to user's email
+      parameters:
+      - description: Email address
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ForgotPasswordResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Request password reset
+      tags:
+      - Auth
   /jobs/{id}:
     get:
       consumes:
@@ -2620,6 +2753,46 @@ paths:
       summary: Get payment history
       tags:
       - Payment
+  /reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset user password using email, code and new password
+      parameters:
+      - description: Reset password data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ResetPasswordResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Reset password with code
+      tags:
+      - Auth
   /reviews:
     post:
       consumes:
@@ -3104,6 +3277,38 @@ paths:
       summary: Получить файлы верификации пользователя
       tags:
       - Verification
+  /verify-reset-code:
+    post:
+      consumes:
+      - application/json
+      description: Verify if the provided reset code is valid and not expired
+      parameters:
+      - description: Email and code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.VerifyResetCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.VerifyResetCodeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.VerifyResetCodeResponse'
+      summary: Verify password reset code
+      tags:
+      - Auth
 securityDefinitions:
   BearerAuth:
     description: 'Enter JWT token in format: Bearer {your_token_here}'
