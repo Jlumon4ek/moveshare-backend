@@ -139,13 +139,13 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 
 // GetJobByID godoc
 // @Summary Get job by ID
-// @Description Retrieves a specific job by its ID
+// @Description Retrieves a specific job by its ID with contractor information
 // @Tags Jobs
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "Job ID"
-// @Success 200 {object} map[string]interface{} "Job details"
+// @Success 200 {object} models.Job "Job details with contractor username, status and average rating"
 // @Failure 400 {object} map[string]string "Bad request"
 // @Failure 404 {object} map[string]string "Job not found"
 // @Router /jobs/{id} [get]
@@ -159,11 +159,13 @@ func (h *JobHandler) GetJobByID(c *gin.Context) {
 
 	job, err := h.jobService.GetJobByID(jobID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Job not found"})
+		// Log the actual error for debugging
+		fmt.Printf("Error getting job by ID %d: %v\n", jobID, err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Job not found", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"job": job})
+	c.JSON(http.StatusOK, job)
 }
 
 // GetMyJobs godoc
@@ -225,9 +227,9 @@ func (h *JobHandler) GetMyJobs(c *gin.Context) {
 // @Param origin query string false "Pickup address filter"
 // @Param destination query string false "Delivery address filter"
 // @Param max_distance query number false "Maximum distance in miles"
-// @Param date_start query string false "Start date filter (YYYY-MM-DD)"
-// @Param date_end query string false "End date filter (YYYY-MM-DD)"
-// @Param truck_size query string false "Truck size filter" Enums(Small, Medium, Large)
+// @Param pickup_date_start query string false "Start date filter (YYYY-MM-DD)"
+// @Param pickup_date_end query string false "End date filter (YYYY-MM-DD)"
+// @Param truck_size query string false "Truck size filter (space-separated for multiple)" example("Small Large")
 // @Param payout_min query number false "Minimum payout amount"
 // @Param payout_max query number false "Maximum payout amount"
 // @Success 200 {object} map[string]interface{} "Available jobs with pagination and applied filters"
@@ -271,15 +273,15 @@ func (h *JobHandler) GetAvailableJobs(c *gin.Context) {
 			"total_pages": totalPages,
 		},
 		"filters_applied": gin.H{
-			"number_of_bedrooms": filters.NumberOfBedrooms,
-			"origin":             filters.Origin,
-			"destination":        filters.Destination,
-			"max_distance":       filters.MaxDistance,
-			"date_start":         filters.DateStart,
-			"date_end":           filters.DateEnd,
-			"truck_size":         filters.TruckSize,
-			"payout_min":         filters.PayoutMin,
-			"payout_max":         filters.PayoutMax,
+			"number_of_bedrooms":  filters.NumberOfBedrooms,
+			"origin":              filters.Origin,
+			"destination":         filters.Destination,
+			"max_distance":        filters.MaxDistance,
+			"pickup_date_start":   filters.DateStart,
+			"pickup_date_end":     filters.DateEnd,
+			"truck_size":          filters.TruckSize,
+			"payout_min":          filters.PayoutMin,
+			"payout_max":          filters.PayoutMax,
 		},
 	}
 

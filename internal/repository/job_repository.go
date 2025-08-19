@@ -48,16 +48,31 @@ func (r *JobRepository) CreateJob(ctx context.Context, job *models.Job) error {
 
 func (r *JobRepository) GetJobByID(ctx context.Context, jobID int64) (*models.Job, error) {
 	query := `
-		SELECT id, contractor_id, executor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items,
-			   inventory_list, hoisting, additional_services_description, estimated_crew_assistants,
-			   truck_size, pickup_address, pickup_floor, pickup_building_type, pickup_walk_distance,
-			   delivery_address, delivery_floor, delivery_building_type, delivery_walk_distance,
-			   distance_miles, job_status, pickup_date, pickup_time_from, pickup_time_to,
-			   delivery_date, delivery_time_from, delivery_time_to, cut_amount, payment_amount,
-			   weight_lbs, volume_cu_ft, created_at, updated_at
-		FROM jobs WHERE id = $1`
+		SELECT j.id, j.contractor_id, j.executor_id, j.job_type, j.number_of_bedrooms, j.packing_boxes, j.bulky_items,
+			   j.inventory_list, j.hoisting, j.additional_services_description, j.estimated_crew_assistants,
+			   j.truck_size, j.pickup_address, j.pickup_floor, j.pickup_building_type, j.pickup_walk_distance,
+			   j.delivery_address, j.delivery_floor, j.delivery_building_type, j.delivery_walk_distance,
+			   j.distance_miles, j.job_status, j.pickup_date, j.pickup_time_from, j.pickup_time_to,
+			   j.delivery_date, j.delivery_time_from, j.delivery_time_to, j.cut_amount, j.payment_amount,
+			   j.weight_lbs, j.volume_cu_ft, j.created_at, j.updated_at,
+			   u.username, u.status, 
+			   COALESCE(AVG(r.rating), 0) as avg_rating
+		FROM jobs j
+		LEFT JOIN users u ON j.contractor_id = u.id
+		LEFT JOIN reviews r ON r.reviewee_id = u.id
+		WHERE j.id = $1
+		GROUP BY j.id, j.contractor_id, j.executor_id, j.job_type, j.number_of_bedrooms, j.packing_boxes, j.bulky_items,
+				 j.inventory_list, j.hoisting, j.additional_services_description, j.estimated_crew_assistants,
+				 j.truck_size, j.pickup_address, j.pickup_floor, j.pickup_building_type, j.pickup_walk_distance,
+				 j.delivery_address, j.delivery_floor, j.delivery_building_type, j.delivery_walk_distance,
+				 j.distance_miles, j.job_status, j.pickup_date, j.pickup_time_from, j.pickup_time_to,
+				 j.delivery_date, j.delivery_time_from, j.delivery_time_to, j.cut_amount, j.payment_amount,
+				 j.weight_lbs, j.volume_cu_ft, j.created_at, j.updated_at, u.username, u.status`
 
 	var job models.Job
+	var username, status string
+	var avgRating float64
+	
 	err := r.db.QueryRow(ctx, query, jobID).Scan(
 		&job.ID, &job.ContractorID, &job.ExecutorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
 		&job.BulkyItems, &job.InventoryList, &job.Hoisting, &job.AdditionalServicesDescription,
@@ -67,11 +82,17 @@ func (r *JobRepository) GetJobByID(ctx context.Context, jobID int64) (*models.Jo
 		&job.PickupDate, &job.PickupTimeFrom, &job.PickupTimeTo, &job.DeliveryDate,
 		&job.DeliveryTimeFrom, &job.DeliveryTimeTo, &job.CutAmount, &job.PaymentAmount,
 		&job.WeightLbs, &job.VolumeCuFt, &job.CreatedAt, &job.UpdatedAt,
+		&username, &status, &avgRating,
 	)
 
 	if err != nil {
 		return nil, err
 	}
+
+	// Assign contractor info
+	job.ContractorUsername = &username
+	job.ContractorStatus = &status
+	job.ContractorRating = &avgRating
 
 	return &job, nil
 }
@@ -310,7 +331,7 @@ func (r *JobRepository) GetAvailableJobs(ctx context.Context, userID int64, filt
 	// Базовый запрос
 	baseQuery := `
 		SELECT id, job_type, distance_miles, pickup_address, delivery_address,
-			   pickup_date, truck_size, weight_lbs, volume_cu_ft, payment_amount,
+			   pickup_date, delivery_date, truck_size, weight_lbs, volume_cu_ft, payment_amount,
 			   contractor_id, number_of_bedrooms
 		FROM jobs 
 		WHERE contractor_id != $1 AND job_status = 'active' AND executor_id IS NULL
@@ -366,9 +387,16 @@ func (r *JobRepository) GetAvailableJobs(ctx context.Context, userID int64, filt
 	}
 
 	if filters.TruckSize != nil && *filters.TruckSize != "" {
-		conditions = append(conditions, fmt.Sprintf("truck_size = $%d", paramIndex))
-		params = append(params, *filters.TruckSize)
-		paramIndex++
+		sizes := strings.Fields(*filters.TruckSize)
+		if len(sizes) == 1 {
+			conditions = append(conditions, fmt.Sprintf("truck_size = $%d", paramIndex))
+			params = append(params, sizes[0])
+			paramIndex++
+		} else if len(sizes) > 1 {
+			conditions = append(conditions, fmt.Sprintf("truck_size = ANY($%d)", paramIndex))
+			params = append(params, sizes)
+			paramIndex++
+		}
 	}
 
 	if filters.PayoutMin != nil {
@@ -413,7 +441,7 @@ func (r *JobRepository) GetAvailableJobs(ctx context.Context, userID int64, filt
 		var job models.AvailableJobDTO
 		err := rows.Scan(
 			&job.ID, &job.JobType, &job.DistanceMiles, &job.PickupAddress,
-			&job.DeliveryAddress, &job.PickupDate, &job.TruckSize,
+			&job.DeliveryAddress, &job.PickupDate, &job.DeliveryDate, &job.TruckSize,
 			&job.WeightLbs, &job.VolumeCuFt, &job.PaymentAmount,
 			&job.ContractorID, &job.NumberOfBedrooms,
 		)
@@ -481,9 +509,16 @@ func (r *JobRepository) GetCountAvailableJobsWithFilters(ctx context.Context, us
 	}
 
 	if filters.TruckSize != nil && *filters.TruckSize != "" {
-		conditions = append(conditions, fmt.Sprintf("truck_size = $%d", paramIndex))
-		params = append(params, *filters.TruckSize)
-		paramIndex++
+		sizes := strings.Fields(*filters.TruckSize)
+		if len(sizes) == 1 {
+			conditions = append(conditions, fmt.Sprintf("truck_size = $%d", paramIndex))
+			params = append(params, sizes[0])
+			paramIndex++
+		} else if len(sizes) > 1 {
+			conditions = append(conditions, fmt.Sprintf("truck_size = ANY($%d)", paramIndex))
+			params = append(params, sizes)
+			paramIndex++
+		}
 	}
 
 	if filters.PayoutMin != nil {
@@ -556,9 +591,16 @@ func (r *JobRepository) GetCountAvailableJobs(ctx context.Context, userID int64,
 	}
 
 	if filters.TruckSize != nil && *filters.TruckSize != "" {
-		conditions = append(conditions, fmt.Sprintf("truck_size = $%d", paramIndex))
-		params = append(params, *filters.TruckSize)
-		paramIndex++
+		sizes := strings.Fields(*filters.TruckSize)
+		if len(sizes) == 1 {
+			conditions = append(conditions, fmt.Sprintf("truck_size = $%d", paramIndex))
+			params = append(params, sizes[0])
+			paramIndex++
+		} else if len(sizes) > 1 {
+			conditions = append(conditions, fmt.Sprintf("truck_size = ANY($%d)", paramIndex))
+			params = append(params, sizes)
+			paramIndex++
+		}
 	}
 
 	if filters.PayoutMin != nil {
@@ -723,7 +765,7 @@ func (r *JobRepository) GetJobsByIDs(ctx context.Context, userID int64, jobIDs [
 	}
 
 	query := `
-		SELECT id, contractor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items,
+		SELECT id, contractor_id, executor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items,
 			   inventory_list, hoisting, additional_services_description, estimated_crew_assistants,
 			   truck_size, pickup_address, pickup_floor, pickup_building_type, pickup_walk_distance,
 			   delivery_address, delivery_floor, delivery_building_type, delivery_walk_distance,

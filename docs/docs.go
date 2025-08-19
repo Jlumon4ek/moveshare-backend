@@ -1117,13 +1117,9 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
-                        "enum": [
-                            "Small",
-                            "Medium",
-                            "Large"
-                        ],
                         "type": "string",
-                        "description": "Truck size filter",
+                        "example": "\"Small Large\"",
+                        "description": "Truck size filter (space-separated for multiple)",
                         "name": "truck_size",
                         "in": "query"
                     },
@@ -2177,8 +2173,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Job details",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/models.Job"
                         }
                     },
                     "400": {

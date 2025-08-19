@@ -1545,8 +1545,7 @@ paths:
         "200":
           description: Job details
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.Job'
         "400":
           description: Bad request
           schema:
@@ -1696,11 +1695,8 @@ paths:
         in: query
         name: date_end
         type: string
-      - description: Truck size filter
-        enum:
-        - Small
-        - Medium
-        - Large
+      - description: Truck size filter (space-separated for multiple)
+        example: '"Small Large"'
         in: query
         name: truck_size
         type: string

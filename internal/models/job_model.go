@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -59,6 +60,11 @@ type Job struct {
 
 	// Files
 	Files []JobFile `json:"files,omitempty"`
+
+	// Contractor info (only for detailed job view)
+	ContractorUsername *string  `json:"contractor_username,omitempty"`
+	ContractorStatus   *string  `json:"contractor_status,omitempty"`
+	ContractorRating   *float64 `json:"contractor_rating,omitempty"`
 
 	// Timestamps
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
@@ -142,8 +148,8 @@ type JobFilters struct {
 	Origin           *string  `form:"origin"`             // адрес отправления (поиск по частичному совпадению)
 	Destination      *string  `form:"destination"`        // адрес назначения (поиск по частичному совпадению)
 	MaxDistance      *float64 `form:"max_distance"`       // максимальная дистанция в милях
-	DateStart        *string  `form:"date_start"`         // начальная дата в формате YYYY-MM-DD
-	DateEnd          *string  `form:"date_end"`           // конечная дата в формате YYYY-MM-DD
+	DateStart        *string  `form:"pickup_date_start"`  // начальная дата в формате YYYY-MM-DD
+	DateEnd          *string  `form:"pickup_date_end"`    // конечная дата в формате YYYY-MM-DD
 	TruckSize        *string  `form:"truck_size"`         // размер грузовика: "Small", "Medium", "Large"
 	PayoutMin        *float64 `form:"payout_min"`         // минимальная оплата
 	PayoutMax        *float64 `form:"payout_max"`         // максимальная оплата
@@ -154,13 +160,13 @@ func (f *JobFilters) Validate() error {
 	// Валидация дат
 	if f.DateStart != nil {
 		if _, err := time.Parse("2006-01-02", *f.DateStart); err != nil {
-			return fmt.Errorf("invalid date_start format, use YYYY-MM-DD")
+			return fmt.Errorf("invalid pickup_date_start format, use YYYY-MM-DD")
 		}
 	}
 
 	if f.DateEnd != nil {
 		if _, err := time.Parse("2006-01-02", *f.DateEnd); err != nil {
-			return fmt.Errorf("invalid date_end format, use YYYY-MM-DD")
+			return fmt.Errorf("invalid pickup_date_end format, use YYYY-MM-DD")
 		}
 	}
 
@@ -172,8 +178,11 @@ func (f *JobFilters) Validate() error {
 	// Валидация размера грузовика
 	if f.TruckSize != nil {
 		validSizes := map[string]bool{"Small": true, "Medium": true, "Large": true}
-		if !validSizes[*f.TruckSize] {
-			return fmt.Errorf("truck_size must be one of: Small, Medium, Large")
+		sizes := strings.Fields(*f.TruckSize)
+		for _, size := range sizes {
+			if !validSizes[size] {
+				return fmt.Errorf("truck_size must contain only: Small, Medium, Large")
+			}
 		}
 	}
 
@@ -220,6 +229,7 @@ type AvailableJobDTO struct {
 	PickupAddress    string    `json:"pickup_address"`
 	DeliveryAddress  string    `json:"delivery_address"`
 	PickupDate       time.Time `json:"pickup_date"`
+	DeliveryDate     time.Time `json:"delivery_date"`
 	TruckSize        string    `json:"truck_size"`
 	WeightLbs        float64   `json:"weight_lbs"`
 	VolumeCuFt       float64   `json:"volume_cu_ft"`
