@@ -913,6 +913,19 @@ func (h *JobHandler) UploadWorkPhotos(c *gin.Context) {
 // uploadFilesWithType - общий метод для загрузки файлов с указанным типом
 func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 	fmt.Printf("=== uploadFilesWithType START (type: %s) ===\n", fileType)
+	fmt.Printf("Request method: %s\n", c.Request.Method)
+	fmt.Printf("Request URL: %s\n", c.Request.URL.String())
+	fmt.Printf("Content-Type: %s\n", c.Request.Header.Get("Content-Type"))
+	fmt.Printf("Content-Length: %s\n", c.Request.Header.Get("Content-Length"))
+	fmt.Printf("User-Agent: %s\n", c.Request.Header.Get("User-Agent"))
+	
+	// Выводим все заголовки
+	fmt.Printf("All headers:\n")
+	for key, values := range c.Request.Header {
+		for _, value := range values {
+			fmt.Printf("  %s: %s\n", key, value)
+		}
+	}
 	
 	userID, exists := c.Get("userID")
 	if !exists {

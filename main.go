@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"strings"
 	"moveshare/internal/config"
 	"moveshare/internal/handlers"
 	"moveshare/internal/handlers/chat"
@@ -93,6 +94,28 @@ func main() {
 
 	// Увеличиваем лимит для загрузки файлов до 100MB
 	r.MaxMultipartMemory = 100 << 20 // 100 MB
+
+	// Добавляем middleware для детального логирования запросов
+	r.Use(func(c *gin.Context) {
+		if strings.Contains(c.Request.URL.Path, "upload") {
+			log.Printf("=== UPLOAD REQUEST START ===")
+			log.Printf("Method: %s", c.Request.Method)
+			log.Printf("URL: %s", c.Request.URL.String())
+			log.Printf("Content-Type: %s", c.Request.Header.Get("Content-Type"))
+			log.Printf("Content-Length: %s", c.Request.Header.Get("Content-Length"))
+			log.Printf("Remote Addr: %s", c.Request.RemoteAddr)
+			log.Printf("User-Agent: %s", c.Request.Header.Get("User-Agent"))
+			
+			// Логируем размер тела запроса
+			if c.Request.ContentLength > 0 {
+				log.Printf("Request body size: %d bytes (%.2f MB)", c.Request.ContentLength, float64(c.Request.ContentLength)/(1024*1024))
+			}
+		}
+		c.Next()
+		if strings.Contains(c.Request.URL.Path, "upload") {
+			log.Printf("=== UPLOAD REQUEST END ===")
+		}
+	})
 
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{
