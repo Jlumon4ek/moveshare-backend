@@ -147,14 +147,15 @@ func main() {
 
 	jobRepo := repository.NewJobRepository(db)
 	jobService := service.NewJobService(jobRepo, &cfg.GoogleMaps, minioRepo)
-	jobHandler := handlers.NewJobHandler(jobService, minioRepo)
-
+	
 	locationRepo := repository.NewLocationRepository(db)
 	locationService := service.NewLocationService(locationRepo)
 	locationHandler := handlers.NewLocationHandler(locationService)
 
 	chatRepo := chatRepo.NewChatRepository(db)
 	chatService := service.NewChatService(chatRepo)
+	
+	jobHandler := handlers.NewJobHandler(jobService, chatService, minioRepo)
 
 	reviewRepo := reviewRepo.NewReviewRepository(db)
 	reviewService := service.NewReviewService(reviewRepo)

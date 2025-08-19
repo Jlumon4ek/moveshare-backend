@@ -19,13 +19,15 @@ import (
 
 type JobHandler struct {
 	jobService  *service.JobService
+	chatService service.ChatService
 	minioRepo   *repository.Repository
 }
 
-func NewJobHandler(jobService *service.JobService, minioRepo *repository.Repository) *JobHandler {
+func NewJobHandler(jobService *service.JobService, chatService service.ChatService, minioRepo *repository.Repository) *JobHandler {
 	return &JobHandler{
-		jobService: jobService,
-		minioRepo:  minioRepo,
+		jobService:  jobService,
+		chatService: chatService,
+		minioRepo:   minioRepo,
 	}
 }
 
@@ -273,15 +275,15 @@ func (h *JobHandler) GetAvailableJobs(c *gin.Context) {
 			"total_pages": totalPages,
 		},
 		"filters_applied": gin.H{
-			"number_of_bedrooms":  filters.NumberOfBedrooms,
-			"origin":              filters.Origin,
-			"destination":         filters.Destination,
-			"max_distance":        filters.MaxDistance,
-			"pickup_date_start":   filters.DateStart,
-			"pickup_date_end":     filters.DateEnd,
-			"truck_size":          filters.TruckSize,
-			"payout_min":          filters.PayoutMin,
-			"payout_max":          filters.PayoutMax,
+			"number_of_bedrooms": filters.NumberOfBedrooms,
+			"origin":             filters.Origin,
+			"destination":        filters.Destination,
+			"max_distance":       filters.MaxDistance,
+			"pickup_date_start":  filters.DateStart,
+			"pickup_date_end":    filters.DateEnd,
+			"truck_size":         filters.TruckSize,
+			"payout_min":         filters.PayoutMin,
+			"payout_max":         filters.PayoutMax,
 		},
 	}
 
@@ -318,14 +320,14 @@ func (h *JobHandler) GetJobFilterOptions(c *gin.Context) {
 
 // GetClaimedJobs godoc
 // @Summary Get claimed jobs
-// @Description Retrieves jobs claimed by the authenticated user with pagination
+// @Description Retrieves jobs claimed by the authenticated user with pagination and chat creation status
 // @Tags Jobs
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param page query int false "Page number" default(1)
 // @Param limit query int false "Items per page" default(10)
-// @Success 200 {object} map[string]interface{} "Claimed jobs with pagination"
+// @Success 200 {object} map[string]interface{} "Claimed jobs with pagination and chat status"
 // @Failure 400 {object} map[string]string "Bad request"
 // @Failure 401 {object} map[string]string "Unauthorized"
 // @Failure 500 {object} map[string]string "Internal server error"
@@ -349,10 +351,46 @@ func (h *JobHandler) GetClaimedJobs(c *gin.Context) {
 		return
 	}
 
+	// Обогащаем каждую работу информацией о чате
+	type JobWithChatStatus struct {
+		models.Job
+		ChatExists bool  `json:"chat_exists"`
+		ChatID     int64 `json:"chat_id,omitempty"`
+	}
+
+	jobsWithChatStatus := make([]JobWithChatStatus, 0, len(jobs))
+	ctx := c.Request.Context()
+
+	for _, job := range jobs {
+		jobWithChat := JobWithChatStatus{
+			Job:        job,
+			ChatExists: false,
+			ChatID:     0,
+		}
+
+		// Проверяем существование чата между заказчиком и исполнителем
+		if job.ExecutorID != nil {
+			fmt.Printf("Checking chat for job %d: client_id=%d, contractor_id=%d\n", job.ID, job.ContractorID, *job.ExecutorID)
+			chatID, err := h.chatService.FindExistingChat(ctx, job.ID, job.ContractorID, *job.ExecutorID)
+			if err != nil {
+				// Логируем ошибку, но не прерываем обработку
+				fmt.Printf("Failed to check chat existence for job %d: %v\n", job.ID, err)
+			} else if chatID > 0 {
+				fmt.Printf("Found existing chat %d for job %d\n", chatID, job.ID)
+				jobWithChat.ChatExists = true
+				jobWithChat.ChatID = chatID
+			} else {
+				fmt.Printf("No chat found for job %d\n", job.ID)
+			}
+		}
+
+		jobsWithChatStatus = append(jobsWithChatStatus, jobWithChat)
+	}
+
 	totalPages := (total + pagination.Limit - 1) / pagination.Limit
 
 	c.JSON(http.StatusOK, gin.H{
-		"jobs": jobs,
+		"jobs": jobsWithChatStatus,
 		"pagination": gin.H{
 			"page":        pagination.Page,
 			"limit":       pagination.Limit,
@@ -453,12 +491,12 @@ func (h *JobHandler) generateCSV(jobs []models.Job) ([]byte, error) {
 	writer := csv.NewWriter(&buf)
 
 	headers := []string{
-		"job_type", "number_of_bedrooms", "packing_boxes", "bulky_items", "inventory_list", 
-		"hoisting", "additional_services_description", "estimated_crew_assistants", "truck_size", 
-		"pickup_address", "pickup_floor", "pickup_building_type", "pickup_walk_distance", 
-		"delivery_address", "delivery_floor", "delivery_building_type", "delivery_walk_distance", 
-		"distance_miles", "job_status", "pickup_date", "pickup_time_from", "pickup_time_to", 
-		"delivery_date", "delivery_time_from", "delivery_time_to", "cut_amount", "payment_amount", 
+		"job_type", "number_of_bedrooms", "packing_boxes", "bulky_items", "inventory_list",
+		"hoisting", "additional_services_description", "estimated_crew_assistants", "truck_size",
+		"pickup_address", "pickup_floor", "pickup_building_type", "pickup_walk_distance",
+		"delivery_address", "delivery_floor", "delivery_building_type", "delivery_walk_distance",
+		"distance_miles", "job_status", "pickup_date", "pickup_time_from", "pickup_time_to",
+		"delivery_date", "delivery_time_from", "delivery_time_to", "cut_amount", "payment_amount",
 		"weight_lbs", "volume_cu_ft",
 	}
 
@@ -545,7 +583,6 @@ func (h *JobHandler) GetJobsStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, stats)
 }
-
 
 // GetUserWorkStats godoc
 // @Summary Get user work statistics
@@ -674,7 +711,7 @@ func (h *JobHandler) GetTodayScheduleJobs(c *gin.Context) {
 // @Router /jobs/upload-files/{id} [post]
 func (h *JobHandler) UploadJobFiles(c *gin.Context) {
 	fmt.Printf("=== UploadJobFiles START ===\n")
-	
+
 	userID, exists := c.Get("userID")
 	if !exists {
 		fmt.Printf("ERROR: User not authenticated\n")
@@ -708,7 +745,7 @@ func (h *JobHandler) UploadJobFiles(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not the executor of this job"})
 		return
 	}
-	
+
 	if *job.ExecutorID != userID.(int64) {
 		fmt.Printf("ERROR: User %v is not the executor (executor: %v)\n", userID, *job.ExecutorID)
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not the executor of this job"})
@@ -730,12 +767,12 @@ func (h *JobHandler) UploadJobFiles(c *gin.Context) {
 		fmt.Printf("ERROR: Failed to parse form: %v\n", err)
 		if err.Error() == "http: request body too large" {
 			c.JSON(http.StatusRequestEntityTooLarge, gin.H{
-				"error": "File too large. Maximum size allowed is 100MB",
+				"error":   "File too large. Maximum size allowed is 100MB",
 				"details": err.Error(),
 			})
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Failed to parse form",
+				"error":   "Failed to parse form",
 				"details": err.Error(),
 			})
 		}
@@ -750,7 +787,7 @@ func (h *JobHandler) UploadJobFiles(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No files provided"})
 		return
 	}
-	
+
 	for i, file := range files {
 		fmt.Printf("File %d: %s (size: %d bytes)\n", i+1, file.Filename, file.Size)
 	}
@@ -761,7 +798,7 @@ func (h *JobHandler) UploadJobFiles(c *gin.Context) {
 	for _, file := range files {
 		// Генерируем уникальный ID для файла
 		fileID := uuid.New().String()
-		
+
 		// Определяем объект в MinIO
 		objectName := fmt.Sprintf("jobs/%d/%s-%s", jobID, fileID, filepath.Base(file.Filename))
 
@@ -918,7 +955,7 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 	fmt.Printf("Content-Type: %s\n", c.Request.Header.Get("Content-Type"))
 	fmt.Printf("Content-Length: %s\n", c.Request.Header.Get("Content-Length"))
 	fmt.Printf("User-Agent: %s\n", c.Request.Header.Get("User-Agent"))
-	
+
 	// Выводим все заголовки
 	fmt.Printf("All headers:\n")
 	for key, values := range c.Request.Header {
@@ -926,7 +963,7 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 			fmt.Printf("  %s: %s\n", key, value)
 		}
 	}
-	
+
 	userID, exists := c.Get("userID")
 	if !exists {
 		fmt.Printf("ERROR: User not authenticated\n")
@@ -960,7 +997,7 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not the executor of this job"})
 		return
 	}
-	
+
 	if *job.ExecutorID != userID.(int64) {
 		fmt.Printf("ERROR: User %v is not the executor (executor: %v)\n", userID, *job.ExecutorID)
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not the executor of this job"})
@@ -982,12 +1019,12 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 		fmt.Printf("ERROR: Failed to parse form: %v\n", err)
 		if err.Error() == "http: request body too large" {
 			c.JSON(http.StatusRequestEntityTooLarge, gin.H{
-				"error": "File too large. Maximum size allowed is 100MB",
+				"error":   "File too large. Maximum size allowed is 100MB",
 				"details": err.Error(),
 			})
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Failed to parse form",
+				"error":   "Failed to parse form",
 				"details": err.Error(),
 			})
 		}
@@ -1002,7 +1039,7 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No files provided"})
 		return
 	}
-	
+
 	for i, file := range files {
 		fmt.Printf("File %d: %s (size: %d bytes)\n", i+1, file.Filename, file.Size)
 	}
@@ -1010,10 +1047,13 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 	var uploadedFiles []models.JobFile
 	ctx := context.Background()
 
-	for _, file := range files {
+	for i, file := range files {
+		fmt.Printf("Processing file %d/%d: %s\n", i+1, len(files), file.Filename)
+
 		// Генерируем уникальный ID для файла
 		fileID := uuid.New().String()
-		
+		fmt.Printf("Generated file ID: %s\n", fileID)
+
 		// Определяем объект в MinIO в зависимости от типа файла
 		var objectName string
 		if fileType == "verification_document" {
@@ -1021,36 +1061,48 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 		} else {
 			objectName = fmt.Sprintf("jobs/%d/work-photos/%s-%s", jobID, fileID, filepath.Base(file.Filename))
 		}
+		fmt.Printf("Object name: %s\n", objectName)
 
 		// Открываем файл
+		fmt.Printf("Opening file %s...\n", file.Filename)
 		src, err := file.Open()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to open file %s", file.Filename)})
+			fmt.Printf("ERROR: Failed to open file %s: %v\n", file.Filename, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to open file %s: %v", file.Filename, err)})
 			return
 		}
 		defer src.Close()
 
 		// Читаем содержимое файла
+		fmt.Printf("Reading file content (size: %d bytes)...\n", file.Size)
 		fileData := make([]byte, file.Size)
-		_, err = src.Read(fileData)
+		bytesRead, err := src.Read(fileData)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to read file %s", file.Filename)})
+			fmt.Printf("ERROR: Failed to read file %s: %v\n", file.Filename, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to read file %s: %v", file.Filename, err)})
 			return
 		}
+		fmt.Printf("Read %d bytes from file\n", bytesRead)
 
 		// Загружаем в MinIO
+		fmt.Printf("Uploading to MinIO bucket 'job-files', object: %s\n", objectName)
 		err = h.minioRepo.UploadBytes(ctx, "job-files", objectName, fileData, file.Header.Get("Content-Type"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to upload file %s", file.Filename)})
+			fmt.Printf("ERROR: Failed to upload to MinIO: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to upload file %s to storage: %v", file.Filename, err)})
 			return
 		}
+		fmt.Printf("Successfully uploaded to MinIO\n")
 
 		// Сохраняем информацию о файле в БД
+		fmt.Printf("Saving file info to database...\n")
 		err = h.jobService.UploadJobFileWithType(jobID, objectName, file.Filename, file.Size, file.Header.Get("Content-Type"), fileType)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to save file info for %s", file.Filename)})
+			fmt.Printf("ERROR: Failed to save file info to DB: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to save file info for %s: %v", file.Filename, err)})
 			return
 		}
+		fmt.Printf("Successfully saved file info to database\n")
 
 		uploadedFiles = append(uploadedFiles, models.JobFile{
 			JobID:       jobID,
@@ -1064,11 +1116,14 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 	}
 
 	// Меняем статус на pending при загрузке любых файлов
+	fmt.Printf("Updating job status to pending...\n")
 	err = h.jobService.MarkJobAsPending(jobID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update job status"})
+		fmt.Printf("ERROR: Failed to update job status: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to update job status: %v", err)})
 		return
 	}
+	fmt.Printf("Successfully updated job status to pending\n")
 
 	var message string
 	if fileType == "verification_document" {
@@ -1077,12 +1132,14 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 		message = "Work photos uploaded successfully and job status changed to pending"
 	}
 
+	fmt.Printf("Upload completed successfully. Returning response...\n")
 	c.JSON(http.StatusOK, gin.H{
 		"message":        message,
 		"uploaded_files": uploadedFiles,
 		"files_count":    len(uploadedFiles),
 		"file_type":      fileType,
 	})
+	fmt.Printf("=== uploadFilesWithType END ===\n")
 }
 
 // GetJobFilesByType godoc
