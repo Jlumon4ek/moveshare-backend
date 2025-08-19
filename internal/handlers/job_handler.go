@@ -728,7 +728,17 @@ func (h *JobHandler) UploadJobFiles(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
 		fmt.Printf("ERROR: Failed to parse form: %v\n", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse form"})
+		if err.Error() == "http: request body too large" {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+				"error": "File too large. Maximum size allowed is 100MB",
+				"details": err.Error(),
+			})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Failed to parse form",
+				"details": err.Error(),
+			})
+		}
 		return
 	}
 	fmt.Printf("Form parsed successfully\n")
@@ -957,7 +967,17 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 	form, err := c.MultipartForm()
 	if err != nil {
 		fmt.Printf("ERROR: Failed to parse form: %v\n", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse form"})
+		if err.Error() == "http: request body too large" {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+				"error": "File too large. Maximum size allowed is 100MB",
+				"details": err.Error(),
+			})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Failed to parse form",
+				"details": err.Error(),
+			})
+		}
 		return
 	}
 	fmt.Printf("Form parsed successfully\n")

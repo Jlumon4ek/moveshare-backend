@@ -91,6 +91,9 @@ func main() {
 
 	r := gin.Default()
 
+	// Увеличиваем лимит для загрузки файлов до 100MB
+	r.MaxMultipartMemory = 100 << 20 // 100 MB
+
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{
 		"http://localhost:3000",
