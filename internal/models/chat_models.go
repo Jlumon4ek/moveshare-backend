@@ -28,7 +28,7 @@ type ChatMessage struct {
 type ChatListItem struct {
 	ID              int64     `json:"id"`
 	JobID           int64     `json:"job_id"`
-	JobType         string    `json:"job_type"`
+	JobTitle        string    `json:"job_title"`
 	OtherUserID     int64     `json:"other_user_id"`
 	OtherUserName   string    `json:"other_user_name"`
 	OtherUserRole   string    `json:"other_user_role"`
@@ -53,4 +53,10 @@ type ChatMessageResponse struct {
 	IsFromMe    bool       `json:"is_from_me"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+type ChatParticipant struct {
+	UserID   int64  `json:"user_id"`
+	UserName string `json:"user_name"`
+	Role     string `json:"role"` // "client" или "contractor"
 }

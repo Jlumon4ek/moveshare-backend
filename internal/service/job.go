@@ -11,16 +11,18 @@ import (
 )
 
 type JobService struct {
-	jobRepo       *repository.JobRepository
-	googleMapsCfg *config.GoogleMapsConfig
-	minioRepo     *repository.Repository
+	jobRepo             *repository.JobRepository
+	googleMapsCfg       *config.GoogleMapsConfig
+	minioRepo           *repository.Repository
+	notificationService NotificationService
 }
 
-func NewJobService(jobRepo *repository.JobRepository, googleMapsCfg *config.GoogleMapsConfig, minioRepo *repository.Repository) *JobService {
+func NewJobService(jobRepo *repository.JobRepository, googleMapsCfg *config.GoogleMapsConfig, minioRepo *repository.Repository, notificationService NotificationService) *JobService {
 	return &JobService{
-		jobRepo:       jobRepo,
-		googleMapsCfg: googleMapsCfg,
-		minioRepo:     minioRepo,
+		jobRepo:             jobRepo,
+		googleMapsCfg:       googleMapsCfg,
+		minioRepo:           minioRepo,
+		notificationService: notificationService,
 	}
 }
 
@@ -83,10 +85,14 @@ func (s *JobService) CreateJob(userID int64, req *models.CreateJobRequest) (*mod
 		EstimatedCrewAssistants:       req.EstimatedCrewAssistants,
 		TruckSize:                     req.TruckSize,
 		PickupAddress:                 req.PickupAddress,
+		PickupCity:                    req.PickupCity,
+		PickupState:                   req.PickupState,
 		PickupFloor:                   req.PickupFloor,
 		PickupBuildingType:            req.PickupBuildingType,
 		PickupWalkDistance:            req.PickupWalkDistance,
 		DeliveryAddress:               req.DeliveryAddress,
+		DeliveryCity:                  req.DeliveryCity,
+		DeliveryState:                 req.DeliveryState,
 		DeliveryFloor:                 req.DeliveryFloor,
 		DeliveryBuildingType:          req.DeliveryBuildingType,
 		DeliveryWalkDistance:          req.DeliveryWalkDistance,
@@ -150,7 +156,22 @@ func (s *JobService) DeleteJob(jobID, userID int64) error {
 
 func (s *JobService) ClaimJob(jobID, userID int64) error {
 	ctx := context.Background()
-	return s.jobRepo.ClaimJob(ctx, jobID, userID)
+	err := s.jobRepo.ClaimJob(ctx, jobID, userID)
+	if err != nil {
+		return err
+	}
+
+	// Отправляем уведомление о том, что работа взята
+	if s.notificationService != nil {
+		// Получаем информацию о работе
+		job, getJobErr := s.jobRepo.GetJobByID(ctx, jobID)
+		if getJobErr == nil {
+			// Send WebSocket notification for real-time updates
+		s.notificationService.NotifyJobUpdate(job.ContractorID, jobID, "claimed", "Your job has been claimed by a mover")
+		}
+	}
+
+	return nil
 }
 
 func (s *JobService) GetMyJobs(userID int64, page, limit int) ([]models.Job, int, error) {
@@ -203,7 +224,21 @@ func (s *JobService) GetClaimedJobs(userID int64, page, limit int) ([]models.Job
 
 func (s *JobService) MarkJobCompleted(jobID, userID int64) error {
 	ctx := context.Background()
-	return s.jobRepo.MarkJobCompleted(ctx, jobID, userID)
+	err := s.jobRepo.MarkJobCompleted(ctx, jobID, userID)
+	if err != nil {
+		return err
+	}
+
+	// Отправляем уведомление о завершении работы
+	if s.notificationService != nil {
+		// Получаем информацию о работе
+		job, getJobErr := s.jobRepo.GetJobByID(ctx, jobID)
+		if getJobErr == nil {
+			s.notificationService.NotifyJobUpdate(job.ContractorID, jobID, "completed", "Your job has been marked as completed")
+		}
+	}
+
+	return nil
 }
 
 func (s *JobService) GetJobsForExport(userID int64, jobIDs []int64) ([]models.Job, error) {
@@ -276,7 +311,21 @@ func (s *JobService) GetJobFiles(jobID int64) ([]models.JobFile, error) {
 
 func (s *JobService) MarkJobAsPending(jobID int64) error {
 	ctx := context.Background()
-	return s.jobRepo.UpdateJobStatus(ctx, jobID, "pending")
+	err := s.jobRepo.UpdateJobStatus(ctx, jobID, "pending")
+	if err != nil {
+		return err
+	}
+
+	// Отправляем уведомление об изменении статуса
+	if s.notificationService != nil {
+		// Получаем информацию о работе
+		job, getJobErr := s.jobRepo.GetJobByID(ctx, jobID)
+		if getJobErr == nil {
+			s.notificationService.NotifyJobUpdate(job.ContractorID, jobID, "pending", "Your job status has been updated to pending")
+		}
+	}
+
+	return nil
 }
 
 func (s *JobService) UploadJobFileWithType(jobID int64, fileID, fileName string, fileSize int64, contentType, fileType string) error {

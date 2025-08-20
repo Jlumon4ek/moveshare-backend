@@ -18,16 +18,18 @@ import (
 )
 
 type JobHandler struct {
-	jobService  *service.JobService
-	chatService service.ChatService
-	minioRepo   *repository.Repository
+	jobService         *service.JobService
+	chatService        service.ChatService
+	notificationService service.NotificationService
+	minioRepo          *repository.Repository
 }
 
-func NewJobHandler(jobService *service.JobService, chatService service.ChatService, minioRepo *repository.Repository) *JobHandler {
+func NewJobHandler(jobService *service.JobService, chatService service.ChatService, notificationService service.NotificationService, minioRepo *repository.Repository) *JobHandler {
 	return &JobHandler{
-		jobService:  jobService,
-		chatService: chatService,
-		minioRepo:   minioRepo,
+		jobService:         jobService,
+		chatService:        chatService,
+		notificationService: notificationService,
+		minioRepo:          minioRepo,
 	}
 }
 
@@ -62,6 +64,28 @@ func (h *JobHandler) PostNewJob(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Send notifications to potential interested users (async)
+	go func() {
+		// Get route information for notification
+		route := fmt.Sprintf("%s → %s", req.PickupAddress, req.DeliveryAddress)
+		estimatedPay := float64(req.PaymentAmount)
+		
+		// In a real implementation, you would query for users who:
+		// - Are near the pickup/delivery locations
+		// - Have experience with this type of job
+		// - Have opted in to new job notifications
+		// For now, we'll skip the complex user matching logic
+		
+		// Example: if you had a list of interested users, you could notify them:
+		// interestedUsers := h.jobService.GetUsersInterestedInRoute(route)
+		// for _, user := range interestedUsers {
+		//     h.notificationService.NotifyNewMatchingJob(ctx, user.ID, job.ID, job.JobType, route, estimatedPay)
+		// }
+		
+		// Log that a new job was posted for potential notification
+		fmt.Printf("New job posted (ID: %d) - route: %s, pay: $%.2f\n", job.ID, route, estimatedPay)
+	}()
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Job created successfully",
@@ -100,6 +124,19 @@ func (h *JobHandler) ClaimJob(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Send notification to job owner (async)
+	go func() {
+		ctx := context.Background()
+		// Get job details to get owner ID and job title
+		job, err := h.jobService.GetJobByID(jobID)
+		if err == nil {
+			// Note: We need a user service to get contractor name
+			// For now, we'll use a placeholder name
+			contractorName := "Contractor" // TODO: Get actual contractor name from user service
+			h.notificationService.NotifyJobClaimed(ctx, job.ContractorID, userID.(int64), jobID, contractorName, job.JobType)
+		}
+	}()
 
 	c.JSON(http.StatusOK, gin.H{"message": "Job claimed successfully"})
 }
@@ -432,6 +469,16 @@ func (h *JobHandler) MarkJobCompleted(c *gin.Context) {
 		return
 	}
 
+	// Send notification to job owner (async)
+	go func() {
+		ctx := context.Background()
+		// Get job details to get owner ID and job title
+		job, err := h.jobService.GetJobByID(jobID)
+		if err == nil {
+			h.notificationService.NotifyJobCompleted(ctx, job.ContractorID, userID.(int64), jobID, job.JobType)
+		}
+	}()
+
 	c.JSON(http.StatusOK, gin.H{"message": "Job marked as completed successfully"})
 }
 
@@ -512,7 +559,7 @@ func (h *JobHandler) generateCSV(jobs []models.Job) ([]byte, error) {
 			fmt.Sprintf("%t", job.BulkyItems),
 			fmt.Sprintf("%t", job.InventoryList),
 			fmt.Sprintf("%t", job.Hoisting),
-			job.AdditionalServicesDescription,
+			h.formatStringPtr(job.AdditionalServicesDescription),
 			job.EstimatedCrewAssistants,
 			job.TruckSize,
 			job.PickupAddress,
@@ -555,6 +602,13 @@ func (h *JobHandler) formatIntPtr(ptr *int) string {
 		return ""
 	}
 	return fmt.Sprintf("%d", *ptr)
+}
+
+func (h *JobHandler) formatStringPtr(ptr *string) string {
+	if ptr == nil {
+		return ""
+	}
+	return *ptr
 }
 
 // GetJobsStats godoc
@@ -1124,6 +1178,19 @@ func (h *JobHandler) uploadFilesWithType(c *gin.Context, fileType string) {
 		return
 	}
 	fmt.Printf("Successfully updated job status to pending\n")
+
+	// Send notification to job owner (async)
+	go func() {
+		ctx := context.Background()
+		// Note: We need a user service to get uploader name
+		// For now, we'll use a placeholder name
+		uploaderName := "User" // TODO: Get actual uploader name from user service
+		documentType := "work photos"
+		if fileType == "verification_document" {
+			documentType = "verification documents"
+		}
+		h.notificationService.NotifyDocumentUploaded(ctx, job.ContractorID, userID.(int64), jobID, uploaderName, documentType)
+	}()
 
 	var message string
 	if fileType == "verification_document" {

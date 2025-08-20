@@ -88,3 +88,14 @@ func (s *ReviewService) GetUserRatingStats(userID int64) (*models.UserRatingStat
 
 	return stats, nil
 }
+
+func (s *ReviewService) CheckJobReviewExists(userID, jobID int64) (*models.Review, error) {
+	ctx := context.Background()
+
+	review, err := s.reviewRepo.GetReviewByJobAndUser(ctx, jobID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check job review existence: %w", err)
+	}
+
+	return review, nil
+}

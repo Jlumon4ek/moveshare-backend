@@ -18,19 +18,35 @@ func NewJobRepository(db *pgxpool.Pool) *JobRepository {
 	return &JobRepository{db: db}
 }
 
+// Helper function to scan job data with new city/state fields
+func scanJob(scanner interface {
+	Scan(dest ...interface{}) error
+}, job *models.Job) error {
+	return scanner.Scan(
+		&job.ID, &job.ContractorID, &job.ExecutorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
+		&job.BulkyItems, &job.InventoryList, &job.Hoisting, &job.AdditionalServicesDescription,
+		&job.EstimatedCrewAssistants, &job.TruckSize, &job.PickupAddress, &job.PickupCity, &job.PickupState, &job.PickupFloor,
+		&job.PickupBuildingType, &job.PickupWalkDistance, &job.DeliveryAddress, &job.DeliveryCity, &job.DeliveryState, &job.DeliveryFloor,
+		&job.DeliveryBuildingType, &job.DeliveryWalkDistance, &job.DistanceMiles, &job.JobStatus,
+		&job.PickupDate, &job.PickupTimeFrom, &job.PickupTimeTo, &job.DeliveryDate,
+		&job.DeliveryTimeFrom, &job.DeliveryTimeTo, &job.CutAmount, &job.PaymentAmount,
+		&job.WeightLbs, &job.VolumeCuFt, &job.CreatedAt, &job.UpdatedAt,
+	)
+}
+
 func (r *JobRepository) CreateJob(ctx context.Context, job *models.Job) error {
 	query := `
 		INSERT INTO jobs (
 			contractor_id, executor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items, 
 			inventory_list, hoisting, additional_services_description, estimated_crew_assistants,
-			truck_size, pickup_address, pickup_floor, pickup_building_type, pickup_walk_distance,
-			delivery_address, delivery_floor, delivery_building_type, delivery_walk_distance,
+			truck_size, pickup_address, pickup_city, pickup_state, pickup_floor, pickup_building_type, pickup_walk_distance,
+			delivery_address, delivery_city, delivery_state, delivery_floor, delivery_building_type, delivery_walk_distance,
 			distance_miles, job_status, pickup_date, pickup_time_from, pickup_time_to,
 			delivery_date, delivery_time_from, delivery_time_to, cut_amount, payment_amount,
 			weight_lbs, volume_cu_ft
 		) VALUES (
-			$1, NULL, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-			$19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30
+			$1, NULL, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+			$21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34
 		) RETURNING id, created_at, updated_at`
 
 	return r.db.QueryRow(
@@ -38,8 +54,8 @@ func (r *JobRepository) CreateJob(ctx context.Context, job *models.Job) error {
 		query,
 		job.ContractorID, job.JobType, job.NumberOfBedrooms, job.PackingBoxes, job.BulkyItems,
 		job.InventoryList, job.Hoisting, job.AdditionalServicesDescription, job.EstimatedCrewAssistants,
-		job.TruckSize, job.PickupAddress, job.PickupFloor, job.PickupBuildingType, job.PickupWalkDistance,
-		job.DeliveryAddress, job.DeliveryFloor, job.DeliveryBuildingType, job.DeliveryWalkDistance,
+		job.TruckSize, job.PickupAddress, job.PickupCity, job.PickupState, job.PickupFloor, job.PickupBuildingType, job.PickupWalkDistance,
+		job.DeliveryAddress, job.DeliveryCity, job.DeliveryState, job.DeliveryFloor, job.DeliveryBuildingType, job.DeliveryWalkDistance,
 		job.DistanceMiles, job.JobStatus, job.PickupDate, job.PickupTimeFrom, job.PickupTimeTo,
 		job.DeliveryDate, job.DeliveryTimeFrom, job.DeliveryTimeTo, job.CutAmount, job.PaymentAmount,
 		job.WeightLbs, job.VolumeCuFt,
@@ -50,8 +66,8 @@ func (r *JobRepository) GetJobByID(ctx context.Context, jobID int64) (*models.Jo
 	query := `
 		SELECT j.id, j.contractor_id, j.executor_id, j.job_type, j.number_of_bedrooms, j.packing_boxes, j.bulky_items,
 			   j.inventory_list, j.hoisting, j.additional_services_description, j.estimated_crew_assistants,
-			   j.truck_size, j.pickup_address, j.pickup_floor, j.pickup_building_type, j.pickup_walk_distance,
-			   j.delivery_address, j.delivery_floor, j.delivery_building_type, j.delivery_walk_distance,
+			   j.truck_size, j.pickup_address, j.pickup_city, j.pickup_state, j.pickup_floor, j.pickup_building_type, j.pickup_walk_distance,
+			   j.delivery_address, j.delivery_city, j.delivery_state, j.delivery_floor, j.delivery_building_type, j.delivery_walk_distance,
 			   j.distance_miles, j.job_status, j.pickup_date, j.pickup_time_from, j.pickup_time_to,
 			   j.delivery_date, j.delivery_time_from, j.delivery_time_to, j.cut_amount, j.payment_amount,
 			   j.weight_lbs, j.volume_cu_ft, j.created_at, j.updated_at,
@@ -63,8 +79,8 @@ func (r *JobRepository) GetJobByID(ctx context.Context, jobID int64) (*models.Jo
 		WHERE j.id = $1
 		GROUP BY j.id, j.contractor_id, j.executor_id, j.job_type, j.number_of_bedrooms, j.packing_boxes, j.bulky_items,
 				 j.inventory_list, j.hoisting, j.additional_services_description, j.estimated_crew_assistants,
-				 j.truck_size, j.pickup_address, j.pickup_floor, j.pickup_building_type, j.pickup_walk_distance,
-				 j.delivery_address, j.delivery_floor, j.delivery_building_type, j.delivery_walk_distance,
+				 j.truck_size, j.pickup_address, j.pickup_city, j.pickup_state, j.pickup_floor, j.pickup_building_type, j.pickup_walk_distance,
+				 j.delivery_address, j.delivery_city, j.delivery_state, j.delivery_floor, j.delivery_building_type, j.delivery_walk_distance,
 				 j.distance_miles, j.job_status, j.pickup_date, j.pickup_time_from, j.pickup_time_to,
 				 j.delivery_date, j.delivery_time_from, j.delivery_time_to, j.cut_amount, j.payment_amount,
 				 j.weight_lbs, j.volume_cu_ft, j.created_at, j.updated_at, u.username, u.status`
@@ -76,8 +92,8 @@ func (r *JobRepository) GetJobByID(ctx context.Context, jobID int64) (*models.Jo
 	err := r.db.QueryRow(ctx, query, jobID).Scan(
 		&job.ID, &job.ContractorID, &job.ExecutorID, &job.JobType, &job.NumberOfBedrooms, &job.PackingBoxes,
 		&job.BulkyItems, &job.InventoryList, &job.Hoisting, &job.AdditionalServicesDescription,
-		&job.EstimatedCrewAssistants, &job.TruckSize, &job.PickupAddress, &job.PickupFloor,
-		&job.PickupBuildingType, &job.PickupWalkDistance, &job.DeliveryAddress, &job.DeliveryFloor,
+		&job.EstimatedCrewAssistants, &job.TruckSize, &job.PickupAddress, &job.PickupCity, &job.PickupState, &job.PickupFloor,
+		&job.PickupBuildingType, &job.PickupWalkDistance, &job.DeliveryAddress, &job.DeliveryCity, &job.DeliveryState, &job.DeliveryFloor,
 		&job.DeliveryBuildingType, &job.DeliveryWalkDistance, &job.DistanceMiles, &job.JobStatus,
 		&job.PickupDate, &job.PickupTimeFrom, &job.PickupTimeTo, &job.DeliveryDate,
 		&job.DeliveryTimeFrom, &job.DeliveryTimeTo, &job.CutAmount, &job.PaymentAmount,
@@ -164,6 +180,7 @@ func (r *JobRepository) GetMyJobs(ctx context.Context, userID int64, offset, lim
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3`
 
+	fmt.Printf("DEBUG GetMyJobs: userID=%d, offset=%d, limit=%d\n", userID, offset, limit)
 	rows, err := r.db.Query(ctx, query, userID, limit, offset)
 	if err != nil {
 		return nil, err
@@ -186,9 +203,12 @@ func (r *JobRepository) GetMyJobs(ctx context.Context, userID int64, offset, lim
 		if err != nil {
 			return nil, err
 		}
+		fmt.Printf("DEBUG GetMyJobs: Found job ID=%d, contractor_id=%d, executor_id=%v, status=%s\n", 
+			job.ID, job.ContractorID, job.ExecutorID, job.JobStatus)
 		jobs = append(jobs, job)
 	}
 
+	fmt.Printf("DEBUG GetMyJobs: Total jobs found: %d\n", len(jobs))
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
@@ -330,7 +350,7 @@ func (r *JobRepository) GetAvailableJobs(ctx context.Context, userID int64, filt
 
 	// Базовый запрос
 	baseQuery := `
-		SELECT id, job_type, distance_miles, pickup_address, delivery_address,
+		SELECT id, job_type, distance_miles, pickup_address, pickup_city, pickup_state, delivery_address, delivery_city, delivery_state,
 			   pickup_date, delivery_date, truck_size, weight_lbs, volume_cu_ft, payment_amount,
 			   contractor_id, number_of_bedrooms
 		FROM jobs 
@@ -357,14 +377,32 @@ func (r *JobRepository) GetAvailableJobs(ctx context.Context, userID int64, filt
 	}
 
 	if filters.Origin != nil && *filters.Origin != "" {
-		conditions = append(conditions, fmt.Sprintf("pickup_address ILIKE $%d", paramIndex))
-		params = append(params, "%"+*filters.Origin+"%")
+		fmt.Printf("=== FILTER DEBUG: Origin filter ===\n")
+		fmt.Printf("Looking for pickup location: '%s'\n", *filters.Origin)
+		
+		// Также добавим отладочный запрос для проверки существующих локаций
+		debugPickupQuery := `SELECT pickup_city, pickup_state, pickup_city || ', ' || pickup_state as combined FROM jobs WHERE pickup_city != '' AND pickup_state != '' LIMIT 5`
+		debugRows, err := r.db.Query(ctx, debugPickupQuery)
+		if err == nil {
+			defer debugRows.Close()
+			fmt.Printf("Existing pickup data in DB:\n")
+			for debugRows.Next() {
+				var city, state, combined string
+				if err := debugRows.Scan(&city, &state, &combined); err == nil {
+					fmt.Printf("  City: '%s', State: '%s', Combined: '%s'\n", city, state, combined)
+				}
+			}
+		}
+		fmt.Printf("=== END FILTER DEBUG ===\n")
+		
+		conditions = append(conditions, fmt.Sprintf("pickup_city || ', ' || pickup_state = $%d", paramIndex))
+		params = append(params, *filters.Origin)
 		paramIndex++
 	}
 
 	if filters.Destination != nil && *filters.Destination != "" {
-		conditions = append(conditions, fmt.Sprintf("delivery_address ILIKE $%d", paramIndex))
-		params = append(params, "%"+*filters.Destination+"%")
+		conditions = append(conditions, fmt.Sprintf("delivery_city || ', ' || delivery_state = $%d", paramIndex))
+		params = append(params, *filters.Destination)
 		paramIndex++
 	}
 
@@ -417,6 +455,33 @@ func (r *JobRepository) GetAvailableJobs(ctx context.Context, userID int64, filt
 		baseQuery += conditionStr
 		countQuery += conditionStr
 	}
+	
+	// Добавляем отладку для полного запроса
+	fmt.Printf("=== FULL QUERY DEBUG ===\n")
+	fmt.Printf("Final count query: %s\n", countQuery)
+	fmt.Printf("Parameters: %v\n", params)
+	
+	// Проверим, есть ли записи для этого пользователя с этой локацией без других фильтров
+	debugFullQuery := `
+		SELECT id, contractor_id, job_status, executor_id, pickup_city, pickup_state
+		FROM jobs 
+		WHERE pickup_city = 'Fulshear' AND pickup_state = 'TX'
+	`
+	debugRows2, debugErr := r.db.Query(ctx, debugFullQuery)
+	if debugErr == nil {
+		defer debugRows2.Close()
+		fmt.Printf("All jobs with Fulshear, TX:\n")
+		for debugRows2.Next() {
+			var id, contractorID int64
+			var jobStatus, pickupCity, pickupState string
+			var executorID *int64
+			if scanErr := debugRows2.Scan(&id, &contractorID, &jobStatus, &executorID, &pickupCity, &pickupState); scanErr == nil {
+				fmt.Printf("  ID: %d, ContractorID: %d, Status: %s, ExecutorID: %v\n", id, contractorID, jobStatus, executorID)
+			}
+		}
+	}
+	fmt.Printf("Current userID: %d\n", userID)
+	fmt.Printf("=== END FULL QUERY DEBUG ===\n")
 
 	// Получаем общее количество
 	var total int
@@ -440,8 +505,8 @@ func (r *JobRepository) GetAvailableJobs(ctx context.Context, userID int64, filt
 	for rows.Next() {
 		var job models.AvailableJobDTO
 		err := rows.Scan(
-			&job.ID, &job.JobType, &job.DistanceMiles, &job.PickupAddress,
-			&job.DeliveryAddress, &job.PickupDate, &job.DeliveryDate, &job.TruckSize,
+			&job.ID, &job.JobType, &job.DistanceMiles, &job.PickupAddress, &job.PickupCity, &job.PickupState,
+			&job.DeliveryAddress, &job.DeliveryCity, &job.DeliveryState, &job.PickupDate, &job.DeliveryDate, &job.TruckSize,
 			&job.WeightLbs, &job.VolumeCuFt, &job.PaymentAmount,
 			&job.ContractorID, &job.NumberOfBedrooms,
 		)
@@ -627,7 +692,12 @@ func (r *JobRepository) GetCountAvailableJobs(ctx context.Context, userID int64,
 // internal/repository/job_repository.go - добавить метод GetFilterOptions
 
 func (r *JobRepository) GetFilterOptions(ctx context.Context, userID int64) (*models.JobFilterOptions, error) {
-	options := &models.JobFilterOptions{}
+	options := &models.JobFilterOptions{
+		NumberOfBedrooms:  []string{},
+		TruckSizes:        []string{},
+		PickupLocations:   []models.LocationOption{},
+		DeliveryLocations: []models.LocationOption{},
+	}
 
 	// Получаем уникальные значения количества спален
 	bedroomsQuery := `
@@ -690,14 +760,66 @@ func (r *JobRepository) GetFilterOptions(ctx context.Context, userID int64) (*mo
 		return nil, fmt.Errorf("failed to get payout range: %w", err)
 	}
 
-	// Получаем максимальную дистанцию (для слайдера)
+	// Получаем уникальные pickup локации (City, State)
+	pickupLocationsQuery := `
+		SELECT DISTINCT pickup_city || ', ' || pickup_state as location
+		FROM jobs 
+		WHERE pickup_city IS NOT NULL AND pickup_city != '' 
+		AND pickup_state IS NOT NULL AND pickup_state != ''
+		ORDER BY location
+	`
+
+	rows, err = r.db.Query(ctx, pickupLocationsQuery)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pickup locations: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var location string
+		if err := rows.Scan(&location); err != nil {
+			return nil, err
+		}
+		options.PickupLocations = append(options.PickupLocations, models.LocationOption{
+			Value: location,
+			Label: location,
+		})
+	}
+
+	// Получаем уникальные delivery локации (City, State)
+	deliveryLocationsQuery := `
+		SELECT DISTINCT delivery_city || ', ' || delivery_state as location
+		FROM jobs 
+		WHERE delivery_city IS NOT NULL AND delivery_city != '' 
+		AND delivery_state IS NOT NULL AND delivery_state != ''
+		ORDER BY location
+	`
+
+	rows, err = r.db.Query(ctx, deliveryLocationsQuery)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get delivery locations: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var location string
+		if err := rows.Scan(&location); err != nil {
+			return nil, err
+		}
+		options.DeliveryLocations = append(options.DeliveryLocations, models.LocationOption{
+			Value: location,
+			Label: location,
+		})
+	}
+
+	// Получаем максимальную дистанцию (для слайдера), округляем до целого
 	maxDistanceQuery := `
-		SELECT MAX(distance_miles)
+		SELECT ROUND(MAX(distance_miles))
 		FROM jobs 
 		WHERE contractor_id != $1 AND job_status = 'active' AND executor_id IS NULL
 	`
 
-	err = r.db.QueryRow(ctx, maxDistanceQuery, userID).Scan(&options.MaxDistance.Max)
+	err = r.db.QueryRow(ctx, maxDistanceQuery, userID).Scan(&options.MaxDistance)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get max distance: %w", err)
 	}

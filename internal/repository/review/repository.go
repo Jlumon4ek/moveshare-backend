@@ -141,3 +141,32 @@ func (r *ReviewRepository) CountReviewsByUser(ctx context.Context, userID int64)
 	err := r.db.QueryRow(ctx, query, userID).Scan(&count)
 	return count, err
 }
+
+func (r *ReviewRepository) GetReviewByJobAndUser(ctx context.Context, jobID, reviewerID int64) (*models.Review, error) {
+	query := `
+		SELECT id, job_id, reviewer_id, reviewee_id, rating, comment, created_at, updated_at
+		FROM reviews 
+		WHERE job_id = $1 AND reviewer_id = $2
+	`
+
+	var review models.Review
+	err := r.db.QueryRow(ctx, query, jobID, reviewerID).Scan(
+		&review.ID,
+		&review.JobID,
+		&review.ReviewerID,
+		&review.RevieweeID,
+		&review.Rating,
+		&review.Comment,
+		&review.CreatedAt,
+		&review.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil // Нет отзыва - это нормально
+		}
+		return nil, err
+	}
+
+	return &review, nil
+}

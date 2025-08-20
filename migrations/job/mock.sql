@@ -6,6 +6,8 @@ DECLARE
     j INT;
     pickup_date DATE;
     delivery_date DATE;
+    pickup_address_index INT;
+    delivery_address_index INT;
     job_types TEXT[] := ARRAY['residential','office','warehouse','other'];
     bedrooms TEXT[] := ARRAY['1','2','3','4','5+','office'];
     crew_assistants TEXT[] := ARRAY['driver_only','driver_1','driver_2','driver_3','driver_4'];
@@ -31,7 +33,22 @@ DECLARE
         '1601 Willow Rd, Menlo Park, CA', 
         '1 World Way, Los Angeles, CA', 
         '20 W 34th St, New York, NY', 
-        '4 Yawkey Way, Boston, MA'
+        '4 Yawkey Way, Boston, MA',
+        '123 Main St, Fulshear, TX'
+    ];
+    cities TEXT[] := ARRAY[
+        'Washington', 'New York', 'Cupertino', 'Los Angeles', 'San Francisco', 
+        'Chicago', 'Los Angeles', 'Burbank', 'Los Angeles', 'New York',
+        'New York', 'Chicago', 'New York', 'Universal City', 'Redmond',
+        'San Jose', 'Menlo Park', 'Los Angeles', 'New York', 'Boston',
+        'Fulshear'
+    ];
+    states TEXT[] := ARRAY[
+        'DC', 'NY', 'CA', 'CA', 'CA', 
+        'IL', 'CA', 'CA', 'CA', 'NY',
+        'NY', 'IL', 'NY', 'CA', 'WA',
+        'CA', 'CA', 'CA', 'NY', 'MA',
+        'TX'
     ];
 BEGIN
     FOR u IN SELECT * FROM users LOOP
@@ -39,6 +56,8 @@ BEGIN
         FOR j IN 1..num_jobs LOOP
             pickup_date := current_date + (floor(random()*30)::int); -- сегодня + 0..29 дней
             delivery_date := pickup_date + (floor(random()*5 + 1)::int); -- delivery > pickup
+            pickup_address_index := floor(random()*array_length(addresses,1)+1);
+            delivery_address_index := floor(random()*array_length(addresses,1)+1);
 
             INSERT INTO jobs (
                 contractor_id,
@@ -47,7 +66,11 @@ BEGIN
                 estimated_crew_assistants,
                 truck_size,
                 pickup_address,
+                pickup_city,
+                pickup_state,
                 delivery_address,
+                delivery_city,
+                delivery_state,
                 pickup_floor,
                 pickup_building_type,
                 pickup_walk_distance,
@@ -72,8 +95,12 @@ BEGIN
                 bedrooms[floor(random()*array_length(bedrooms,1)+1)],
                 crew_assistants[floor(random()*array_length(crew_assistants,1)+1)],
                 truck_sizes[floor(random()*array_length(truck_sizes,1)+1)],
-                addresses[floor(random()*array_length(addresses,1)+1)],
-                addresses[floor(random()*array_length(addresses,1)+1)],
+                addresses[pickup_address_index],
+                cities[pickup_address_index],
+                states[pickup_address_index],
+                addresses[delivery_address_index],
+                cities[delivery_address_index],
+                states[delivery_address_index],
                 floor(random()*20), -- pickup_floor 0..19
                 'Apartment',
                 (ARRAY['0-50ft','50-100ft','100-200ft'])[floor(random()*3+1)],

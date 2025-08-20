@@ -3,21 +3,23 @@ package main
 import (
 	"context"
 	"log"
-	"strings"
 	"moveshare/internal/config"
 	"moveshare/internal/handlers"
 	"moveshare/internal/handlers/chat"
 	"moveshare/internal/handlers/review"
 	"moveshare/internal/repository"
+	"moveshare/internal/repository/admin"
 	chatRepo "moveshare/internal/repository/chat"
 	"moveshare/internal/repository/company"
+	notificationRepo "moveshare/internal/repository/notifications"
+	"moveshare/internal/repository/password_reset"
 	"moveshare/internal/repository/payment"
 	reviewRepo "moveshare/internal/repository/review"
 	"moveshare/internal/repository/truck"
 	"moveshare/internal/repository/user"
 	"moveshare/internal/repository/verification"
-	"moveshare/internal/repository/admin"
-	"moveshare/internal/repository/password_reset"
+	"moveshare/internal/websocket"
+	"strings"
 
 	"moveshare/internal/router"
 	"moveshare/internal/service"
@@ -105,7 +107,7 @@ func main() {
 			log.Printf("Content-Length: %s", c.Request.Header.Get("Content-Length"))
 			log.Printf("Remote Addr: %s", c.Request.RemoteAddr)
 			log.Printf("User-Agent: %s", c.Request.Header.Get("User-Agent"))
-			
+
 			// Логируем размер тела запроса
 			if c.Request.ContentLength > 0 {
 				log.Printf("Request body size: %d bytes (%.2f MB)", c.Request.ContentLength, float64(c.Request.ContentLength)/(1024*1024))
@@ -146,22 +148,29 @@ func main() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	jobRepo := repository.NewJobRepository(db)
-	jobService := service.NewJobService(jobRepo, &cfg.GoogleMaps, minioRepo)
-	
+
+	// Сервис уведомлений (инициализируем раньше)
+	notificationHub := websocket.NewNotificationHub()
+	go notificationHub.Run()
+	notificationRepoInstance := notificationRepo.NewNotificationRepository(db)
+	notificationService := service.NewNotificationService(notificationHub, notificationRepoInstance)
+
+	jobService := service.NewJobService(jobRepo, &cfg.GoogleMaps, minioRepo, notificationService)
+
 	locationRepo := repository.NewLocationRepository(db)
 	locationService := service.NewLocationService(locationRepo)
 	locationHandler := handlers.NewLocationHandler(locationService)
 
 	chatRepo := chatRepo.NewChatRepository(db)
 	chatService := service.NewChatService(chatRepo)
-	
-	jobHandler := handlers.NewJobHandler(jobService, chatService, minioRepo)
+
+	jobHandler := handlers.NewJobHandler(jobService, chatService, notificationService, minioRepo)
 
 	reviewRepo := reviewRepo.NewReviewRepository(db)
 	reviewService := service.NewReviewService(reviewRepo)
-	reviewHandler := review.NewReviewHandler(reviewService)
+	reviewHandler := review.NewReviewHandler(reviewService, notificationService, jobService)
 
-	// Инициализация WebSocket hub
+	// Инициализация WebSocket hub для чата
 	hub := chat.NewHub(chatService)
 	go hub.Run()
 
@@ -174,10 +183,11 @@ func main() {
 		router.CompanyRouter(apiGroup, companyService, jwtAuth)
 		router.TruckRouter(apiGroup, truckService, jwtAuth)
 		router.VerificationRouter(apiGroup, verificationService, jwtAuth)
-		router.PaymentRouter(apiGroup, paymentService, jwtAuth) // ✅ Добавить
+		router.PaymentRouter(apiGroup, paymentService, jwtAuth)
 		router.SetupJobRoutes(apiGroup, jobHandler, jwtAuth)
 		router.SetupLocationRoutes(apiGroup, locationHandler)
-		router.SetupChatRoutes(apiGroup, chatService, *jobService, jwtAuth, hub)
+		router.SetupChatRoutes(apiGroup, chatService, *jobService, jwtAuth, hub, notificationService)
+		router.SetupNotificationRoutes(apiGroup, jwtAuth, notificationHub, notificationService)
 		router.SetupReviewRoutes(apiGroup, reviewHandler, jwtAuth)
 	}
 

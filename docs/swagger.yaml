@@ -360,6 +360,13 @@ definitions:
         type: boolean
       contractor_id:
         type: integer
+      contractor_rating:
+        type: number
+      contractor_status:
+        type: string
+      contractor_username:
+        description: Contractor info (only for detailed job view)
+        type: string
       created_at:
         description: Timestamps
         type: string
@@ -520,6 +527,147 @@ definitions:
           type: integer
         type: object
     type: object
+  models.Notification:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/models.NotificationAction'
+        type: array
+      chat_id:
+        type: integer
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: integer
+      is_read:
+        type: boolean
+      job_id:
+        type: integer
+      message:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      priority:
+        $ref: '#/definitions/models.NotificationPriority'
+      read_at:
+        type: string
+      related_user_id:
+        type: integer
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/models.NotificationType'
+      user_id:
+        type: integer
+    type: object
+  models.NotificationAction:
+    properties:
+      action:
+        description: 'action type: ''view_job'', ''open_chat'', ''mark_read'', etc.'
+        type: string
+      label:
+        type: string
+      primary:
+        description: is this the primary action
+        type: boolean
+      url:
+        description: URL to navigate to
+        type: string
+    type: object
+  models.NotificationListResponse:
+    properties:
+      notifications:
+        items:
+          $ref: '#/definitions/models.Notification'
+        type: array
+      pagination:
+        properties:
+          has_next:
+            type: boolean
+          has_prev:
+            type: boolean
+          limit:
+            type: integer
+          offset:
+            type: integer
+        type: object
+      total:
+        type: integer
+      unread:
+        type: integer
+    type: object
+  models.NotificationPriority:
+    enum:
+    - low
+    - normal
+    - high
+    - urgent
+    type: string
+    x-enum-varnames:
+    - NotificationPriorityLow
+    - NotificationPriorityNormal
+    - NotificationPriorityHigh
+    - NotificationPriorityUrgent
+  models.NotificationStats:
+    properties:
+      by_type:
+        additionalProperties:
+          type: integer
+        type: object
+      total:
+        type: integer
+      unread:
+        type: integer
+    type: object
+  models.NotificationType:
+    enum:
+    - job_application
+    - job_update
+    - job_claimed
+    - job_completed
+    - payment
+    - document_upload
+    - new_job
+    - review
+    - message
+    - system
+    type: string
+    x-enum-comments:
+      NotificationTypeDocumentUpload: Document uploaded
+      NotificationTypeJobApplication: Someone applied to your job
+      NotificationTypeJobClaimed: Your job was claimed
+      NotificationTypeJobCompleted: Job was completed
+      NotificationTypeJobUpdate: Job status changed
+      NotificationTypeMessage: New chat message
+      NotificationTypeNewJob: New job matching criteria
+      NotificationTypePayment: Payment related
+      NotificationTypeReview: New review received
+      NotificationTypeSystem: System announcements
+    x-enum-descriptions:
+    - Someone applied to your job
+    - Job status changed
+    - Your job was claimed
+    - Job was completed
+    - Payment related
+    - Document uploaded
+    - New job matching criteria
+    - New review received
+    - New chat message
+    - System announcements
+    x-enum-varnames:
+    - NotificationTypeJobApplication
+    - NotificationTypeJobUpdate
+    - NotificationTypeJobClaimed
+    - NotificationTypeJobCompleted
+    - NotificationTypePayment
+    - NotificationTypeDocumentUpload
+    - NotificationTypeNewJob
+    - NotificationTypeReview
+    - NotificationTypeMessage
+    - NotificationTypeSystem
   models.PaginatedJobsResponse:
     properties:
       jobs:
@@ -1308,6 +1456,52 @@ paths:
       summary: Create a new chat
       tags:
       - Chat
+  /chats/{chatId}/mark-read:
+    post:
+      description: Mark all unread messages in a chat as read for the current user
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark messages as read
+      tags:
+      - Chat
   /chats/{chatId}/messages:
     get:
       description: Returns messages for a specific chat with pagination
@@ -1532,7 +1726,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves a specific job by its ID
+      description: Retrieves a specific job by its ID with contractor information
       parameters:
       - description: Job ID
         in: path
@@ -1543,7 +1737,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Job details
+          description: Job details with contractor username, status and average rating
           schema:
             $ref: '#/definitions/models.Job'
         "400":
@@ -1689,11 +1883,11 @@ paths:
         type: number
       - description: Start date filter (YYYY-MM-DD)
         in: query
-        name: date_start
+        name: pickup_date_start
         type: string
       - description: End date filter (YYYY-MM-DD)
         in: query
-        name: date_end
+        name: pickup_date_end
         type: string
       - description: Truck size filter (space-separated for multiple)
         example: '"Small Large"'
@@ -1779,6 +1973,7 @@ paths:
       consumes:
       - application/json
       description: Retrieves jobs claimed by the authenticated user with pagination
+        and chat creation status
       parameters:
       - default: 1
         description: Page number
@@ -1794,7 +1989,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Claimed jobs with pagination
+          description: Claimed jobs with pagination and chat status
           schema:
             additionalProperties: true
             type: object
@@ -2431,6 +2626,294 @@ paths:
       summary: Get all states
       tags:
       - Location
+  /notifications:
+    delete:
+      description: Deletes all notifications for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete all notifications
+      tags:
+      - Notifications
+    get:
+      description: Returns a paginated list of notifications for the authenticated
+        user
+      parameters:
+      - default: 20
+        description: Limit number of notifications returned
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by notification type
+        enum:
+        - job_application
+        - job_update
+        - payment
+        - document_upload
+        - new_job
+        - review
+        - message
+        - system
+        in: query
+        name: type
+        type: string
+      - default: false
+        description: Show only unread notifications
+        in: query
+        name: unread
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.NotificationListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user notifications
+      tags:
+      - Notifications
+  /notifications/{id}:
+    delete:
+      description: Deletes a specific notification for the authenticated user
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete notification
+      tags:
+      - Notifications
+  /notifications/{id}/read:
+    post:
+      description: Marks a specific notification as read for the authenticated user
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark notification as read
+      tags:
+      - Notifications
+  /notifications/read-all:
+    post:
+      description: Marks all notifications as read for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark all notifications as read
+      tags:
+      - Notifications
+  /notifications/stats:
+    get:
+      description: Returns notification statistics for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.NotificationStats'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get notification statistics
+      tags:
+      - Notifications
+  /notifications/test:
+    post:
+      description: Sends a test notification to the current user (for development)
+      parameters:
+      - default: system
+        description: Notification type
+        enum:
+        - message
+        - job
+        - system
+        in: query
+        name: type
+        type: string
+      - default: Test notification
+        description: Notification message
+        in: query
+        name: message
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Send test notification
+      tags:
+      - Notifications
+  /notifications/ws:
+    get:
+      description: Establishes WebSocket connection for real-time notifications
+      parameters:
+      - description: JWT token for authentication
+        in: query
+        name: token
+        required: true
+        type: string
+      responses: {}
+      summary: WebSocket connection for notifications
+      tags:
+      - Notifications
   /payment/cards:
     get:
       consumes:

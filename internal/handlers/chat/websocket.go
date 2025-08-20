@@ -83,6 +83,7 @@ func (h *Hub) Run() {
 				Type:   "connected",
 				Data:   gin.H{"message": "Successfully connected to chat"},
 				ChatID: client.ChatID,
+				UserID: client.UserID,
 				Time:   time.Now(),
 			}
 
@@ -153,12 +154,18 @@ func WebSocketChat(hub *Hub, jwtAuth service.JWTAuth) gin.HandlerFunc {
 			return
 		}
 
-		// Проверяем доступ к чату
-		isParticipant, err := hub.ChatService.IsUserParticipant(c.Request.Context(), chatID, userID)
+		// Проверяем доступ к чату с отдельным контекстом
+		log.Printf("WebSocketChat: Checking if user %d is participant of chat %d", userID, chatID)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		
+		isParticipant, err := hub.ChatService.IsUserParticipant(ctx, chatID, userID)
 		if err != nil {
+			log.Printf("WebSocketChat: Error checking participant access for user %d in chat %d: %v", userID, chatID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify chat access"})
 			return
 		}
+		log.Printf("WebSocketChat: User %d participant status for chat %d: %t", userID, chatID, isParticipant)
 
 		if !isParticipant {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
@@ -303,6 +310,18 @@ func (h *Hub) BroadcastMessage(chatID, senderID int64, message *models.ChatMessa
 
 	log.Printf("Broadcasting message from user %d to chat %d", senderID, chatID)
 	h.Broadcast <- wsMessage
+}
+
+// IsUserConnectedToChat проверяет, подключен ли пользователь к чату через WebSocket
+func (h *Hub) IsUserConnectedToChat(chatID, userID int64) bool {
+	if clients, ok := h.Clients[chatID]; ok {
+		for client := range clients {
+			if client.UserID == userID {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func generateClientID(userID, chatID int64) string {

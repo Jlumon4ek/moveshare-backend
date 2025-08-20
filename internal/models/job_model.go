@@ -16,11 +16,11 @@ type Job struct {
 	NumberOfBedrooms string `json:"number_of_bedrooms" db:"number_of_bedrooms"`
 
 	// Additional services
-	PackingBoxes                  bool   `json:"packing_boxes" db:"packing_boxes"`
-	BulkyItems                    bool   `json:"bulky_items" db:"bulky_items"`
-	InventoryList                 bool   `json:"inventory_list" db:"inventory_list"`
-	Hoisting                      bool   `json:"hoisting" db:"hoisting"`
-	AdditionalServicesDescription string `json:"additional_services_description" db:"additional_services_description"`
+	PackingBoxes                  bool    `json:"packing_boxes" db:"packing_boxes"`
+	BulkyItems                    bool    `json:"bulky_items" db:"bulky_items"`
+	InventoryList                 bool    `json:"inventory_list" db:"inventory_list"`
+	Hoisting                      bool    `json:"hoisting" db:"hoisting"`
+	AdditionalServicesDescription *string `json:"additional_services_description" db:"additional_services_description"`
 
 	// Crew and truck
 	EstimatedCrewAssistants string `json:"estimated_crew_assistants" db:"estimated_crew_assistants"`
@@ -28,12 +28,16 @@ type Job struct {
 
 	// Pickup location
 	PickupAddress      string `json:"pickup_address" db:"pickup_address"`
+	PickupCity         string `json:"pickup_city" db:"pickup_city"`
+	PickupState        string `json:"pickup_state" db:"pickup_state"`
 	PickupFloor        *int   `json:"pickup_floor" db:"pickup_floor"`
 	PickupBuildingType string `json:"pickup_building_type" db:"pickup_building_type"`
 	PickupWalkDistance string `json:"pickup_walk_distance" db:"pickup_walk_distance"`
 
 	// Delivery location
 	DeliveryAddress      string `json:"delivery_address" db:"delivery_address"`
+	DeliveryCity         string `json:"delivery_city" db:"delivery_city"`
+	DeliveryState        string `json:"delivery_state" db:"delivery_state"`
 	DeliveryFloor        *int   `json:"delivery_floor" db:"delivery_floor"`
 	DeliveryBuildingType string `json:"delivery_building_type" db:"delivery_building_type"`
 	DeliveryWalkDistance string `json:"delivery_walk_distance" db:"delivery_walk_distance"`
@@ -66,6 +70,11 @@ type Job struct {
 	ContractorStatus   *string  `json:"contractor_status,omitempty"`
 	ContractorRating   *float64 `json:"contractor_rating,omitempty"`
 
+	// Executor info (only for detailed job view)
+	ExecutorUsername *string  `json:"executor_username,omitempty"`
+	ExecutorName     *string  `json:"executor_name,omitempty"`
+	ExecutorRating   *float64 `json:"executor_rating,omitempty"`
+
 	// Timestamps
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
@@ -96,21 +105,25 @@ type CreateJobRequest struct {
 	JobType          string `json:"job_type" binding:"required"`
 	NumberOfBedrooms string `json:"number_of_bedrooms"`
 
-	PackingBoxes                  bool   `json:"packing_boxes"`
-	BulkyItems                    bool   `json:"bulky_items"`
-	InventoryList                 bool   `json:"inventory_list"`
-	Hoisting                      bool   `json:"hoisting"`
-	AdditionalServicesDescription string `json:"additional_services_description"`
+	PackingBoxes                  bool    `json:"packing_boxes"`
+	BulkyItems                    bool    `json:"bulky_items"`
+	InventoryList                 bool    `json:"inventory_list"`
+	Hoisting                      bool    `json:"hoisting"`
+	AdditionalServicesDescription *string `json:"additional_services_description"`
 
 	EstimatedCrewAssistants string `json:"estimated_crew_assistants"`
 	TruckSize               string `json:"truck_size" binding:"required"`
 
 	PickupAddress      string `json:"pickup_address" binding:"required"`
+	PickupCity         string `json:"pickup_city" binding:"required"`
+	PickupState        string `json:"pickup_state" binding:"required"`
 	PickupFloor        *int   `json:"pickup_floor"`
 	PickupBuildingType string `json:"pickup_building_type"`
 	PickupWalkDistance string `json:"pickup_walk_distance"`
 
 	DeliveryAddress      string `json:"delivery_address" binding:"required"`
+	DeliveryCity         string `json:"delivery_city" binding:"required"`
+	DeliveryState        string `json:"delivery_state" binding:"required"`
 	DeliveryFloor        *int   `json:"delivery_floor"`
 	DeliveryBuildingType string `json:"delivery_building_type"`
 	DeliveryWalkDistance string `json:"delivery_walk_distance"`
@@ -145,8 +158,8 @@ type JobFilters struct {
 
 	// Фильтры
 	NumberOfBedrooms *string  `form:"number_of_bedrooms"` // например: "1", "2", "3", "4+", "Studio"
-	Origin           *string  `form:"origin"`             // адрес отправления (поиск по частичному совпадению)
-	Destination      *string  `form:"destination"`        // адрес назначения (поиск по частичному совпадению)
+	Origin           *string  `form:"pickup_location"`    // pickup city, state
+	Destination      *string  `form:"delivery_location"`  // delivery city, state
 	MaxDistance      *float64 `form:"max_distance"`       // максимальная дистанция в милях
 	DateStart        *string  `form:"pickup_date_start"`  // начальная дата в формате YYYY-MM-DD
 	DateEnd          *string  `form:"pickup_date_end"`    // конечная дата в формате YYYY-MM-DD
@@ -202,17 +215,23 @@ func (f *JobFilters) Validate() error {
 	return nil
 }
 
+// LocationOption представляет опцию локации
+type LocationOption struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
 // JobFilterOptions представляет доступные опции для фильтрации
 type JobFilterOptions struct {
-	NumberOfBedrooms []string `json:"number_of_bedrooms"`
-	TruckSizes       []string `json:"truck_sizes"`
+	NumberOfBedrooms []string          `json:"number_of_bedrooms"`
+	TruckSizes       []string          `json:"truck_sizes"`
+	PickupLocations  []LocationOption  `json:"pickup_locations"`
+	DeliveryLocations []LocationOption `json:"delivery_locations"`
 	PayoutRange      struct {
 		Min float64 `json:"min"`
 		Max float64 `json:"max"`
 	} `json:"payout_range"`
-	MaxDistance struct {
-		Max float64 `json:"max"`
-	} `json:"max_distance_available"`
+	MaxDistance float64 `json:"max_distance"`
 	DateRange struct {
 		Min string `json:"min"` // YYYY-MM-DD
 		Max string `json:"max"` // YYYY-MM-DD
@@ -227,7 +246,11 @@ type AvailableJobDTO struct {
 	NumberOfBedrooms string    `json:"number_of_bedrooms"`
 	DistanceMiles    float64   `json:"distance_miles"`
 	PickupAddress    string    `json:"pickup_address"`
+	PickupCity       string    `json:"pickup_city"`
+	PickupState      string    `json:"pickup_state"`
 	DeliveryAddress  string    `json:"delivery_address"`
+	DeliveryCity     string    `json:"delivery_city"`
+	DeliveryState    string    `json:"delivery_state"`
 	PickupDate       time.Time `json:"pickup_date"`
 	DeliveryDate     time.Time `json:"delivery_date"`
 	TruckSize        string    `json:"truck_size"`

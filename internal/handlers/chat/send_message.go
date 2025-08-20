@@ -2,7 +2,9 @@
 package chat
 
 import (
+	"context"
 	"errors"
+	"log"
 	"moveshare/internal/models"
 	"moveshare/internal/service"
 	"moveshare/internal/utils"
@@ -39,7 +41,7 @@ type SendMessageResponse struct {
 // @Failure      404  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
 // @Router       /chats/{chatId}/messages [post]
-func SendMessage(chatService service.ChatService, hub *Hub) gin.HandlerFunc {
+func SendMessage(chatService service.ChatService, hub *Hub, notificationService service.NotificationService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, err := utils.GetUserIDFromContext(c)
 		if err != nil {
@@ -126,6 +128,55 @@ func SendMessage(chatService service.ChatService, hub *Hub) gin.HandlerFunc {
 			wsMessage.IsFromMe = false // Для получателей это НЕ их сообщение
 
 			hub.BroadcastMessage(chatID, userID, &wsMessage)
+		}
+
+		// Отправляем push-уведомления участникам чата (асинхронно)
+		if notificationService != nil {
+			go func() {
+				// Создаем новый контекст для горутины
+				ctx := context.Background()
+				log.Printf("Starting notification process for chat %d", chatID)
+				participants, err := chatService.GetChatParticipants(ctx, chatID)
+				if err != nil {
+					log.Printf("Failed to get chat participants for chat %d: %v", chatID, err)
+					return
+				}
+
+				log.Printf("Found %d participants in chat %d", len(participants), chatID)
+				for _, participant := range participants {
+					log.Printf("Processing participant %d (name: %s, role: %s)", participant.UserID, participant.UserName, participant.Role)
+					
+					// Не отправляем уведомление отправителю
+					if participant.UserID == userID {
+						log.Printf("Skipping sender %d", participant.UserID)
+						continue
+					}
+
+					// Получаем обновленное количество непрочитанных сообщений для этого пользователя
+					unreadCount, err := chatService.GetUserUnreadCount(ctx, participant.UserID)
+					if err != nil {
+						log.Printf("Failed to get unread count for user %d: %v", participant.UserID, err)
+					} else {
+						// Отправляем обновление счетчика через WebSocket
+						notificationService.NotifyUnreadCountChange(participant.UserID, unreadCount)
+					}
+
+					// Проверяем, подключен ли пользователь к WebSocket чата
+					if hub != nil && hub.IsUserConnectedToChat(chatID, participant.UserID) {
+						log.Printf("User %d is connected to chat %d WebSocket, skipping push notification", participant.UserID, chatID)
+						continue
+					}
+
+					log.Printf("Sending push notification to user %d", participant.UserID)
+					// Отправляем уведомление пользователю
+					notificationService.NotifyNewMessage(
+						participant.UserID,
+						chatID,
+						createdMessage.SenderName,
+						createdMessage.MessageText,
+					)
+				}
+			}()
 		}
 
 		// ✅ ИСПРАВЛЕНИЕ: В REST ответе устанавливаем правильное значение для отправителя

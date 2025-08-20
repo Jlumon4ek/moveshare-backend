@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"log"
 	"moveshare/internal/service"
 	"moveshare/internal/utils"
 	"net/http"
@@ -28,25 +29,33 @@ import (
 // @Router       /chats/{chatId}/messages [get]
 func GetChatMessages(chatService service.ChatService) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		log.Printf("GetChatMessages: Starting request")
 		userID, err := utils.GetUserIDFromContext(c)
 		if err != nil {
+			log.Printf("GetChatMessages: Failed to get user ID from context: %v", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			return
 		}
+		log.Printf("GetChatMessages: User ID: %d", userID)
 
 		chatIDStr := c.Param("chatId")
+		log.Printf("GetChatMessages: Chat ID string: %s", chatIDStr)
 		chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
 		if err != nil || chatID <= 0 {
+			log.Printf("GetChatMessages: Invalid chat ID: %s, error: %v", chatIDStr, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chat ID"})
 			return
 		}
+		log.Printf("GetChatMessages: Chat ID: %d", chatID)
 
 		limitStr := c.DefaultQuery("limit", "30")
 		offsetStr := c.DefaultQuery("offset", "0")
 		order := c.DefaultQuery("order", "desc")
+		log.Printf("GetChatMessages: Parameters - limit: %s, offset: %s, order: %s", limitStr, offsetStr, order)
 
 		limit, err := strconv.Atoi(limitStr)
 		if err != nil || limit < 0 || limit > 100 {
+			log.Printf("GetChatMessages: Invalid limit parameter: %s, error: %v", limitStr, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit parameter (0-100)"})
 			return
 		}
@@ -64,6 +73,7 @@ func GetChatMessages(chatService service.ChatService) gin.HandlerFunc {
 
 		isParticipant, err := chatService.IsUserParticipant(c.Request.Context(), chatID, userID)
 		if err != nil {
+			log.Printf("GetChatMessages: Failed to verify chat access for user %d, chat %d: %v", userID, chatID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to verify chat access",
 				"details": err.Error(),
@@ -78,6 +88,7 @@ func GetChatMessages(chatService service.ChatService) gin.HandlerFunc {
 
 		messages, total, err := chatService.GetChatMessages(c.Request.Context(), chatID, userID, limit, offset, order)
 		if err != nil {
+			log.Printf("GetChatMessages: Failed to get chat messages for user %d, chat %d: %v", userID, chatID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to get chat messages",
 				"details": err.Error(),
@@ -85,9 +96,7 @@ func GetChatMessages(chatService service.ChatService) gin.HandlerFunc {
 			return
 		}
 
-		go func() {
-			_ = chatService.MarkMessagesAsRead(c.Request.Context(), chatID, userID)
-		}()
+		// Messages are now marked as read via separate API endpoint
 
 		hasNext := (offset + limit) < total
 		hasPrev := offset > 0

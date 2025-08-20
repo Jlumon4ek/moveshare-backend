@@ -23,7 +23,7 @@ func (r *repository) GetUserChats(ctx context.Context, userID int64, limit, offs
 		SELECT 
 			cc.id,
 			cc.job_id,
-			j.job_type,
+			j.job_type as job_title,
 			CASE 
 				WHEN cc.client_id = $1 THEN cc.contractor_id 
 				ELSE cc.client_id 
@@ -80,7 +80,7 @@ func (r *repository) GetUserChats(ctx context.Context, userID int64, limit, offs
 		err := rows.Scan(
 			&chat.ID,
 			&chat.JobID,
-			&chat.JobType,
+			&chat.JobTitle,
 			&chat.OtherUserID,
 			&chat.OtherUserName,
 			&chat.OtherUserRole,
