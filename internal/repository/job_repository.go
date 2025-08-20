@@ -168,16 +168,19 @@ func (r *JobRepository) ClaimJob(ctx context.Context, jobID, userID int64) error
 
 func (r *JobRepository) GetMyJobs(ctx context.Context, userID int64, offset, limit int) ([]models.Job, error) {
 	query := `
-		SELECT id, contractor_id, executor_id, job_type, number_of_bedrooms, packing_boxes, bulky_items,
-			   inventory_list, hoisting, additional_services_description, estimated_crew_assistants,
-			   truck_size, pickup_address, pickup_floor, pickup_building_type, pickup_walk_distance,
-			   delivery_address, delivery_floor, delivery_building_type, delivery_walk_distance,
-			   distance_miles, job_status, pickup_date, pickup_time_from, pickup_time_to,
-			   delivery_date, delivery_time_from, delivery_time_to, cut_amount, payment_amount,
-			   weight_lbs, volume_cu_ft, created_at, updated_at
-		FROM jobs 
-		WHERE contractor_id = $1
-		ORDER BY created_at DESC
+		SELECT j.id, j.contractor_id, j.executor_id, j.job_type, j.number_of_bedrooms, j.packing_boxes, j.bulky_items,
+			   j.inventory_list, j.hoisting, j.additional_services_description, j.estimated_crew_assistants,
+			   j.truck_size, j.pickup_address, j.pickup_floor, j.pickup_building_type, j.pickup_walk_distance,
+			   j.delivery_address, j.delivery_floor, j.delivery_building_type, j.delivery_walk_distance,
+			   j.distance_miles, j.job_status, j.pickup_date, j.pickup_time_from, j.pickup_time_to,
+			   j.delivery_date, j.delivery_time_from, j.delivery_time_to, j.cut_amount, j.payment_amount,
+			   j.weight_lbs, j.volume_cu_ft, j.created_at, j.updated_at,
+			   COALESCE(c.company_name, u.username) AS executor_name
+		FROM jobs j
+		LEFT JOIN users u ON j.executor_id = u.id
+		LEFT JOIN companies c ON u.id = c.user_id
+		WHERE j.contractor_id = $1
+		ORDER BY j.created_at DESC
 		LIMIT $2 OFFSET $3`
 
 	fmt.Printf("DEBUG GetMyJobs: userID=%d, offset=%d, limit=%d\n", userID, offset, limit)
@@ -198,7 +201,7 @@ func (r *JobRepository) GetMyJobs(ctx context.Context, userID int64, offset, lim
 			&job.DeliveryBuildingType, &job.DeliveryWalkDistance, &job.DistanceMiles, &job.JobStatus,
 			&job.PickupDate, &job.PickupTimeFrom, &job.PickupTimeTo, &job.DeliveryDate,
 			&job.DeliveryTimeFrom, &job.DeliveryTimeTo, &job.CutAmount, &job.PaymentAmount,
-			&job.WeightLbs, &job.VolumeCuFt, &job.CreatedAt, &job.UpdatedAt,
+			&job.WeightLbs, &job.VolumeCuFt, &job.CreatedAt, &job.UpdatedAt, &job.ExecutorName,
 		)
 		if err != nil {
 			return nil, err

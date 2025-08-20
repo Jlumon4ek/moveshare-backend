@@ -164,7 +164,7 @@ func main() {
 	chatRepo := chatRepo.NewChatRepository(db)
 	chatService := service.NewChatService(chatRepo)
 
-	jobHandler := handlers.NewJobHandler(jobService, chatService, notificationService, minioRepo)
+	jobHandler := handlers.NewJobHandler(jobService, chatService, notificationService, minioRepo, paymentService)
 
 	reviewRepo := reviewRepo.NewReviewRepository(db)
 	reviewService := service.NewReviewService(reviewRepo)
@@ -189,6 +189,9 @@ func main() {
 		router.SetupChatRoutes(apiGroup, chatService, *jobService, jwtAuth, hub, notificationService)
 		router.SetupNotificationRoutes(apiGroup, jwtAuth, notificationHub, notificationService)
 		router.SetupReviewRoutes(apiGroup, reviewHandler, jwtAuth)
+
+		// Public system settings route
+		apiGroup.GET("/commission-rate", handlers.GetCommissionRate(adminService))
 	}
 
 	log.Println("Starting server on :8080")

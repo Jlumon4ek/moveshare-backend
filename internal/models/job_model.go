@@ -137,10 +137,57 @@ type CreateJobRequest struct {
 	DeliveryTimeFrom string `json:"delivery_time_from" binding:"required"`
 	DeliveryTimeTo   string `json:"delivery_time_to" binding:"required"`
 
-	CutAmount     float64 `json:"cut_amount"` // <- ДОБАВЬ ЭТО
+	CutAmount     float64 `json:"cut_amount"`
 	PaymentAmount float64 `json:"payment_amount" binding:"required"`
 	WeightLbs     float64 `json:"weight_lbs"`
 	VolumeCuFt    float64 `json:"volume_cu_ft"`
+}
+
+// CreateJobWithPaymentRequest combines job creation with payment processing
+type CreateJobWithPaymentRequest struct {
+	// Job details
+	JobType          string `json:"job_type" binding:"required"`
+	NumberOfBedrooms string `json:"number_of_bedrooms"`
+
+	PackingBoxes                  bool    `json:"packing_boxes"`
+	BulkyItems                    bool    `json:"bulky_items"`
+	InventoryList                 bool    `json:"inventory_list"`
+	Hoisting                      bool    `json:"hoisting"`
+	AdditionalServicesDescription *string `json:"additional_services_description"`
+
+	EstimatedCrewAssistants string `json:"estimated_crew_assistants"`
+	TruckSize               string `json:"truck_size" binding:"required"`
+
+	PickupAddress      string `json:"pickup_address" binding:"required"`
+	PickupCity         string `json:"pickup_city" binding:"required"`
+	PickupState        string `json:"pickup_state" binding:"required"`
+	PickupFloor        *int   `json:"pickup_floor"`
+	PickupBuildingType string `json:"pickup_building_type"`
+	PickupWalkDistance string `json:"pickup_walk_distance"`
+
+	DeliveryAddress      string `json:"delivery_address" binding:"required"`
+	DeliveryCity         string `json:"delivery_city" binding:"required"`
+	DeliveryState        string `json:"delivery_state" binding:"required"`
+	DeliveryFloor        *int   `json:"delivery_floor"`
+	DeliveryBuildingType string `json:"delivery_building_type"`
+	DeliveryWalkDistance string `json:"delivery_walk_distance"`
+
+	DistanceMiles float64 `json:"distance_miles"`
+
+	PickupDate       string `json:"pickup_date" binding:"required"`
+	PickupTimeFrom   string `json:"pickup_time_from" binding:"required"`
+	PickupTimeTo     string `json:"pickup_time_to" binding:"required"`
+	DeliveryDate     string `json:"delivery_date" binding:"required"`
+	DeliveryTimeFrom string `json:"delivery_time_from" binding:"required"`
+	DeliveryTimeTo   string `json:"delivery_time_to" binding:"required"`
+
+	CutAmount     float64 `json:"cut_amount"`
+	PaymentAmount float64 `json:"payment_amount" binding:"required"`
+	WeightLbs     float64 `json:"weight_lbs"`
+	VolumeCuFt    float64 `json:"volume_cu_ft"`
+
+	// Payment information
+	PaymentMethodID *int64 `json:"payment_method_id,omitempty"` // Optional, will use default if not provided
 }
 
 type PaginationQuery struct {

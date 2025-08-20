@@ -18,32 +18,35 @@ import (
 )
 
 type JobHandler struct {
-	jobService         *service.JobService
-	chatService        service.ChatService
+	jobService          *service.JobService
+	chatService         service.ChatService
 	notificationService service.NotificationService
-	minioRepo          *repository.Repository
+	minioRepo           *repository.Repository
+	paymentService      service.PaymentService
 }
 
-func NewJobHandler(jobService *service.JobService, chatService service.ChatService, notificationService service.NotificationService, minioRepo *repository.Repository) *JobHandler {
+func NewJobHandler(jobService *service.JobService, chatService service.ChatService, notificationService service.NotificationService, minioRepo *repository.Repository, paymentService service.PaymentService) *JobHandler {
 	return &JobHandler{
-		jobService:         jobService,
-		chatService:        chatService,
+		jobService:          jobService,
+		chatService:         chatService,
 		notificationService: notificationService,
-		minioRepo:          minioRepo,
+		minioRepo:           minioRepo,
+		paymentService:      paymentService,
 	}
 }
 
 // PostNewJob godoc
-// @Summary Create a new job
-// @Description Creates a new job posting for moving services
+// @Summary Create a new job with payment
+// @Description Creates a new job posting for moving services with required payment processing
 // @Tags Jobs
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param job body models.CreateJobRequest true "Job creation data"
-// @Success 201 {object} map[string]interface{} "Job created successfully"
+// @Param job body models.CreateJobWithPaymentRequest true "Job creation data with payment"
+// @Success 201 {object} map[string]interface{} "Job created successfully with payment processed"
 // @Failure 400 {object} map[string]string "Bad request"
 // @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 402 {object} map[string]string "Payment required"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /jobs/post-new-job [post]
 func (h *JobHandler) PostNewJob(c *gin.Context) {
@@ -53,13 +56,70 @@ func (h *JobHandler) PostNewJob(c *gin.Context) {
 		return
 	}
 
-	var req models.CreateJobRequest
+	var req models.CreateJobWithPaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	job, err := h.jobService.CreateJob(userID.(int64), &req)
+	// Calculate total amount: job payment + $15 processing fee
+	processingFeeCents := int64(1500) // $15.00 in cents
+	totalAmountCents := int64(req.PaymentAmount*100) + processingFeeCents
+
+	// Create payment first
+	paymentReq := &models.CreatePaymentRequest{
+		JobID:           0, // Will be updated after job creation
+		PaymentMethodID: req.PaymentMethodID,
+		AmountCents:     totalAmountCents,
+		Description:     fmt.Sprintf("Payment for %s job posting", req.JobType),
+	}
+
+	paymentResponse, err := h.paymentService.CreatePayment(c.Request.Context(), userID.(int64), paymentReq)
+	if err != nil {
+		c.JSON(http.StatusPaymentRequired, gin.H{
+			"error":   "Payment processing failed",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Create the job after successful payment intent
+	jobReq := &models.CreateJobRequest{
+		JobType:                       req.JobType,
+		NumberOfBedrooms:              req.NumberOfBedrooms,
+		PackingBoxes:                  req.PackingBoxes,
+		BulkyItems:                    req.BulkyItems,
+		InventoryList:                 req.InventoryList,
+		Hoisting:                      req.Hoisting,
+		AdditionalServicesDescription: req.AdditionalServicesDescription,
+		EstimatedCrewAssistants:       req.EstimatedCrewAssistants,
+		TruckSize:                     req.TruckSize,
+		PickupAddress:                 req.PickupAddress,
+		PickupCity:                    req.PickupCity,
+		PickupState:                   req.PickupState,
+		PickupFloor:                   req.PickupFloor,
+		PickupBuildingType:            req.PickupBuildingType,
+		PickupWalkDistance:            req.PickupWalkDistance,
+		DeliveryAddress:               req.DeliveryAddress,
+		DeliveryCity:                  req.DeliveryCity,
+		DeliveryState:                 req.DeliveryState,
+		DeliveryFloor:                 req.DeliveryFloor,
+		DeliveryBuildingType:          req.DeliveryBuildingType,
+		DeliveryWalkDistance:          req.DeliveryWalkDistance,
+		DistanceMiles:                 req.DistanceMiles,
+		PickupDate:                    req.PickupDate,
+		PickupTimeFrom:                req.PickupTimeFrom,
+		PickupTimeTo:                  req.PickupTimeTo,
+		DeliveryDate:                  req.DeliveryDate,
+		DeliveryTimeFrom:              req.DeliveryTimeFrom,
+		DeliveryTimeTo:                req.DeliveryTimeTo,
+		CutAmount:                     req.CutAmount,
+		PaymentAmount:                 req.PaymentAmount,
+		WeightLbs:                     req.WeightLbs,
+		VolumeCuFt:                    req.VolumeCuFt,
+	}
+
+	job, err := h.jobService.CreateJob(userID.(int64), jobReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -70,26 +130,21 @@ func (h *JobHandler) PostNewJob(c *gin.Context) {
 		// Get route information for notification
 		route := fmt.Sprintf("%s → %s", req.PickupAddress, req.DeliveryAddress)
 		estimatedPay := float64(req.PaymentAmount)
-		
-		// In a real implementation, you would query for users who:
-		// - Are near the pickup/delivery locations
-		// - Have experience with this type of job
-		// - Have opted in to new job notifications
-		// For now, we'll skip the complex user matching logic
-		
-		// Example: if you had a list of interested users, you could notify them:
-		// interestedUsers := h.jobService.GetUsersInterestedInRoute(route)
-		// for _, user := range interestedUsers {
-		//     h.notificationService.NotifyNewMatchingJob(ctx, user.ID, job.ID, job.JobType, route, estimatedPay)
-		// }
-		
+
 		// Log that a new job was posted for potential notification
 		fmt.Printf("New job posted (ID: %d) - route: %s, pay: $%.2f\n", job.ID, route, estimatedPay)
 	}()
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Job created successfully",
+		"message": "Job created successfully with payment processed",
 		"job":     job,
+		"payment": gin.H{
+			"payment_intent_id": paymentResponse.PaymentIntentID,
+			"client_secret":     paymentResponse.ClientSecret,
+			"status":            paymentResponse.Status,
+			"total_amount":      float64(totalAmountCents) / 100,
+			"processing_fee":    15.00,
+		},
 	})
 }
 

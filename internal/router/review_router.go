@@ -23,5 +23,8 @@ func SetupReviewRoutes(router gin.IRouter, reviewHandler *review.ReviewHandler, 
 		
 		// GET /reviews/average/:id - Получить среднюю оценку пользователя
 		reviewRoutes.GET("/average/:id", reviewHandler.GetUserAverageRating)
+		
+		// GET /reviews/job/:id/check - Проверить существование отзыва для работы
+		reviewRoutes.GET("/job/:id/check", reviewHandler.CheckJobReviewExists)
 	}
 }

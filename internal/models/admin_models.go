@@ -73,3 +73,28 @@ type PaginatedJobsResponse struct {
 	Limit  int                 `json:"limit"`
 	Offset int                 `json:"offset"`
 }
+
+type TopCompany struct {
+	CompanyName string `json:"company_name"`
+	JobsCount   int    `json:"jobs_count"`
+}
+
+type BusyRoute struct {
+	Route           string `json:"route"`
+	PickupAddress   string `json:"pickup_address"`
+	DeliveryAddress string `json:"delivery_address"`
+	JobsCount       int    `json:"jobs_count"`
+}
+
+type PlatformAnalytics struct {
+	TopCompanies  []TopCompany `json:"top_companies"`
+	BusiestRoutes []BusyRoute  `json:"busiest_routes"`
+}
+
+type SystemSettings struct {
+	ID                int     `json:"id" db:"id"`
+	CommissionRate    float64 `json:"commission_rate" db:"commission_rate"`
+	NewUserApproval   string  `json:"new_user_approval" db:"new_user_approval"`
+	MinimumPayout     int     `json:"minimum_payout" db:"minimum_payout"`
+	JobExpirationDays int     `json:"job_expiration_days" db:"job_expiration_days"`
+}

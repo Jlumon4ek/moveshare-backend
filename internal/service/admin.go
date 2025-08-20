@@ -20,6 +20,9 @@ type AdminService interface {
 	GetUserRole(ctx context.Context, userID int64) (string, error)
 	ChangeVerificationFileStatus(ctx context.Context, fileID int, newStatus string) error
 	GetUserFullInfo(ctx context.Context, userID int64) (*models.UserFullInfo, error)
+	GetPlatformAnalytics(ctx context.Context, days int) (*models.PlatformAnalytics, error)
+	GetSystemSettings(ctx context.Context) (*models.SystemSettings, error)
+	UpdateSystemSettings(ctx context.Context, settings *models.SystemSettings) error
 }
 
 type adminService struct {
@@ -83,4 +86,31 @@ func (s *adminService) ChangeVerificationFileStatus(ctx context.Context, fileID 
 
 func (s *adminService) GetUserFullInfo(ctx context.Context, userID int64) (*models.UserFullInfo, error) {
 	return s.adminRepo.GetUserFullInfo(ctx, userID)
+}
+
+func (s *adminService) GetPlatformAnalytics(ctx context.Context, days int) (*models.PlatformAnalytics, error) {
+	// Get top companies (limit to 5)
+	topCompanies, err := s.adminRepo.GetTopCompanies(ctx, days, 5)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get busiest routes (limit to 5)
+	busiestRoutes, err := s.adminRepo.GetBusiestRoutes(ctx, days, 5)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.PlatformAnalytics{
+		TopCompanies:  topCompanies,
+		BusiestRoutes: busiestRoutes,
+	}, nil
+}
+
+func (s *adminService) GetSystemSettings(ctx context.Context) (*models.SystemSettings, error) {
+	return s.adminRepo.GetSystemSettings(ctx)
+}
+
+func (s *adminService) UpdateSystemSettings(ctx context.Context, settings *models.SystemSettings) error {
+	return s.adminRepo.UpdateSystemSettings(ctx, settings)
 }

@@ -22,6 +22,8 @@ func AdminRouter(r gin.IRouter, jwtAuth service.JWTAuth, adminService service.Ad
 		adminGroup.GET("/conversations/count", admin.GetChatConversationCount(adminService))
 		adminGroup.GET("/jobs/active/count", admin.GetActiveJobsCount(adminService))
 		adminGroup.GET("/jobs", admin.GetJobsList(adminService))
-		// adminGroup.GET("/jobs", admin.GetAllJobs(adminService))
+		adminGroup.GET("/analytics", admin.GetPlatformAnalytics(adminService))
+		adminGroup.GET("/settings", admin.GetSystemSettings(adminService))
+		adminGroup.PUT("/settings", admin.UpdateSystemSettings(adminService))
 	}
 }

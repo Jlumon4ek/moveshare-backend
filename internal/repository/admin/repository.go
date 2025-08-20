@@ -21,6 +21,10 @@ type AdminRepository interface {
 	GetUserRole(ctx context.Context, userID int64) (string, error)
 	ChangeVerificationFileStatus(ctx context.Context, fileID int, newStatus string) error
 	GetUserFullInfo(ctx context.Context, userID int64) (*models.UserFullInfo, error)
+	GetTopCompanies(ctx context.Context, days int, limit int) ([]models.TopCompany, error)
+	GetBusiestRoutes(ctx context.Context, days int, limit int) ([]models.BusyRoute, error)
+	GetSystemSettings(ctx context.Context) (*models.SystemSettings, error)
+	UpdateSystemSettings(ctx context.Context, settings *models.SystemSettings) error
 }
 
 type repository struct {
