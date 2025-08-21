@@ -23,7 +23,7 @@ type UserPaymentMethod struct {
 type Payment struct {
 	ID                    int64     `json:"id"`
 	UserID                int64     `json:"user_id"`
-	JobID                 int64     `json:"job_id,omitempty"`
+	JobID                 *int64    `json:"job_id,omitempty"`
 	StripePaymentIntentID string    `json:"stripe_payment_intent_id"`
 	StripePaymentMethodID string    `json:"stripe_payment_method_id"`
 	StripeCustomerID      string    `json:"stripe_customer_id"`
@@ -64,7 +64,7 @@ type AddCardResponse struct {
 }
 
 type CreatePaymentRequest struct {
-	JobID           int64  `json:"job_id" binding:"required" example:"123"`
+	JobID           *int64 `json:"job_id,omitempty" example:"123"`                 // Опционально для отдельных платежей
 	PaymentMethodID *int64 `json:"payment_method_id,omitempty" example:"456"`      // Опционально, если не указано - берем default
 	AmountCents     int64  `json:"amount_cents" binding:"required" example:"2999"` // $29.99
 	Description     string `json:"description,omitempty" example:"Payment for job posting"`

@@ -371,7 +371,7 @@ func (r *repository) GetPaymentByStripeIntentID(ctx context.Context, stripePayme
 	}
 
 	if jobID != nil {
-		payment.JobID = *jobID
+		payment.JobID = jobID
 	}
 
 	if failureReason != nil {
@@ -426,7 +426,7 @@ func (r *repository) GetUserPayments(ctx context.Context, userID int64, limit, o
 		}
 
 		if jobID != nil {
-			payment.JobID = *jobID
+			payment.JobID = jobID
 		}
 
 		// ✅ ИЗМЕНЕНИЕ: Проверяем и присваиваем failure_reason

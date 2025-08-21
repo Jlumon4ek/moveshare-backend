@@ -66,24 +66,7 @@ func (h *JobHandler) PostNewJob(c *gin.Context) {
 	processingFeeCents := int64(1500) // $15.00 in cents
 	totalAmountCents := int64(req.PaymentAmount*100) + processingFeeCents
 
-	// Create payment first
-	paymentReq := &models.CreatePaymentRequest{
-		JobID:           0, // Will be updated after job creation
-		PaymentMethodID: req.PaymentMethodID,
-		AmountCents:     totalAmountCents,
-		Description:     fmt.Sprintf("Payment for %s job posting", req.JobType),
-	}
-
-	paymentResponse, err := h.paymentService.CreatePayment(c.Request.Context(), userID.(int64), paymentReq)
-	if err != nil {
-		c.JSON(http.StatusPaymentRequired, gin.H{
-			"error":   "Payment processing failed",
-			"details": err.Error(),
-		})
-		return
-	}
-
-	// Create the job after successful payment intent
+	// Create the job first
 	jobReq := &models.CreateJobRequest{
 		JobType:                       req.JobType,
 		NumberOfBedrooms:              req.NumberOfBedrooms,
@@ -122,6 +105,29 @@ func (h *JobHandler) PostNewJob(c *gin.Context) {
 	job, err := h.jobService.CreateJob(userID.(int64), jobReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Create payment after job creation with job ID
+	paymentReq := &models.CreatePaymentRequest{
+		JobID:           &job.ID,
+		PaymentMethodID: req.PaymentMethodID,
+		AmountCents:     totalAmountCents,
+		Description:     fmt.Sprintf("Payment for %s job posting", req.JobType),
+	}
+
+	paymentResponse, err := h.paymentService.CreatePayment(c.Request.Context(), userID.(int64), paymentReq)
+	if err != nil {
+		// If payment fails, delete the created job
+		deleteErr := h.jobService.DeleteJob(job.ID, userID.(int64))
+		if deleteErr != nil {
+			fmt.Printf("Failed to delete job after payment failure: %v\n", deleteErr)
+		}
+		
+		c.JSON(http.StatusPaymentRequired, gin.H{
+			"error":   "Payment processing failed",
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -535,6 +541,45 @@ func (h *JobHandler) MarkJobCompleted(c *gin.Context) {
 	}()
 
 	c.JSON(http.StatusOK, gin.H{"message": "Job marked as completed successfully"})
+}
+
+// CancelJobs godoc
+// @Summary Cancel multiple jobs
+// @Description Cancels multiple jobs by changing their status to 'cancelled'
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param cancel body models.CancelJobsRequest true "Job IDs to cancel"
+// @Success 200 {object} map[string]interface{} "Jobs cancelled successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Forbidden"
+// @Router /jobs/cancel-jobs [post]
+func (h *JobHandler) CancelJobs(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var req models.CancelJobsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	cancelledCount, err := h.jobService.CancelJobs(req.JobIDs, userID.(int64))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":         "Jobs cancelled successfully",
+		"cancelled_count": cancelledCount,
+		"total_requested": len(req.JobIDs),
+	})
 }
 
 // ExportJobs godoc

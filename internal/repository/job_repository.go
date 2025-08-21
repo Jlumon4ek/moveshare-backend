@@ -884,6 +884,74 @@ func (r *JobRepository) MarkJobCompleted(ctx context.Context, jobID, userID int6
 	return tx.Commit(ctx)
 }
 
+func (r *JobRepository) CancelJobs(ctx context.Context, jobIDs []int64, userID int64) (int, error) {
+	if len(jobIDs) == 0 {
+		return 0, fmt.Errorf("no job IDs provided")
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Check valid statuses for all jobs
+	query := `
+		SELECT id, job_status 
+		FROM jobs 
+		WHERE id = ANY($1)`
+
+	rows, err := tx.Query(ctx, query, jobIDs)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	fmt.Printf("DEBUG: Looking for jobs with IDs: %v\n", jobIDs)
+	
+	validJobIDs := make([]int64, 0)
+	foundJobs := make([]string, 0)
+	for rows.Next() {
+		var jobID int64
+		var status string
+		if err := rows.Scan(&jobID, &status); err != nil {
+			return 0, err
+		}
+
+		foundJobs = append(foundJobs, fmt.Sprintf("ID:%d Status:%s", jobID, status))
+		
+		// Only allow cancelling jobs with 'active' status
+		if status == "active" {
+			validJobIDs = append(validJobIDs, jobID)
+		}
+	}
+	
+	fmt.Printf("DEBUG: Found jobs: %v\n", foundJobs)
+	fmt.Printf("DEBUG: Jobs that can be cancelled: %v\n", validJobIDs)
+
+	if len(validJobIDs) == 0 {
+		return 0, fmt.Errorf("no jobs found with 'active' status that can be cancelled")
+	}
+
+	// Update valid jobs from 'active' to 'canceled'
+	updateQuery := `
+		UPDATE jobs 
+		SET job_status = 'canceled', updated_at = CURRENT_TIMESTAMP 
+		WHERE id = ANY($1)`
+
+	result, err := tx.Exec(ctx, updateQuery, validJobIDs)
+	if err != nil {
+		return 0, err
+	}
+
+	cancelledCount := result.RowsAffected()
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+
+	return int(cancelledCount), nil
+}
+
 func (r *JobRepository) GetJobsByIDs(ctx context.Context, userID int64, jobIDs []int64) ([]models.Job, error) {
 	if len(jobIDs) == 0 {
 		return []models.Job{}, nil

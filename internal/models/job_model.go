@@ -311,6 +311,11 @@ type ExportJobsRequest struct {
 	JobIDs []int64 `json:"job_ids" binding:"required,min=1"`
 }
 
+// CancelJobsRequest представляет запрос на отмену работ
+type CancelJobsRequest struct {
+	JobIDs []int64 `json:"job_ids" binding:"required,min=1"`
+}
+
 // JobsStats представляет статистику по работам
 type JobsStats struct {
 	ActiveJobsCount    int            `json:"active_jobs_count"`

@@ -241,6 +241,27 @@ func (s *JobService) MarkJobCompleted(jobID, userID int64) error {
 	return nil
 }
 
+func (s *JobService) CancelJobs(jobIDs []int64, userID int64) (int, error) {
+	ctx := context.Background()
+	cancelledCount, err := s.jobRepo.CancelJobs(ctx, jobIDs, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	// Отправляем уведомления об отмене работ
+	if s.notificationService != nil {
+		for _, jobID := range jobIDs {
+			// Получаем информацию о работе
+			job, getJobErr := s.jobRepo.GetJobByID(ctx, jobID)
+			if getJobErr == nil && job.JobStatus == "canceled" {
+				s.notificationService.NotifyJobUpdate(job.ContractorID, jobID, "canceled", "Your job has been canceled")
+			}
+		}
+	}
+
+	return cancelledCount, nil
+}
+
 func (s *JobService) GetJobsForExport(userID int64, jobIDs []int64) ([]models.Job, error) {
 	ctx := context.Background()
 	return s.jobRepo.GetJobsByIDs(ctx, userID, jobIDs)
