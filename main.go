@@ -15,6 +15,7 @@ import (
 	"moveshare/internal/repository/password_reset"
 	"moveshare/internal/repository/payment"
 	reviewRepo "moveshare/internal/repository/review"
+	sessionRepo "moveshare/internal/repository/session"
 	"moveshare/internal/repository/truck"
 	"moveshare/internal/repository/user"
 	"moveshare/internal/repository/verification"
@@ -67,6 +68,9 @@ func main() {
 
 	userRepo := user.NewUserRepository(db)
 	userService := service.NewUserService(userRepo)
+
+	sessionRepository := sessionRepo.NewSessionRepository(db)
+	sessionService := service.NewSessionService(sessionRepository)
 
 	companyRepo := company.NewCompanyRepository(db)
 	companyService := service.NewCompanyService(companyRepo, userRepo)
@@ -164,7 +168,7 @@ func main() {
 	chatRepo := chatRepo.NewChatRepository(db)
 	chatService := service.NewChatService(chatRepo)
 
-	jobHandler := handlers.NewJobHandler(jobService, chatService, notificationService, minioRepo, paymentService)
+	jobHandler := handlers.NewJobHandler(jobService, chatService, notificationService, minioRepo, paymentService, adminService)
 
 	reviewRepo := reviewRepo.NewReviewRepository(db)
 	reviewService := service.NewReviewService(reviewRepo)
@@ -179,7 +183,7 @@ func main() {
 	apiGroup := r.Group("/api")
 	{
 		router.AdminRouter(apiGroup, jwtAuth, adminService)
-		router.UserRouter(apiGroup, userService, minioService, jwtAuth, passwordResetService)
+		router.UserRouter(apiGroup, userService, minioService, jwtAuth, passwordResetService, sessionService)
 		router.CompanyRouter(apiGroup, companyService, jwtAuth)
 		router.TruckRouter(apiGroup, truckService, jwtAuth)
 		router.VerificationRouter(apiGroup, verificationService, jwtAuth)

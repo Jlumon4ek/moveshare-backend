@@ -304,6 +304,7 @@ type AvailableJobDTO struct {
 	WeightLbs        float64   `json:"weight_lbs"`
 	VolumeCuFt       float64   `json:"volume_cu_ft"`
 	PaymentAmount    float64   `json:"payment_amount"`
+	CutAmount        float64   `json:"cut_amount"`
 }
 
 // ExportJobsRequest представляет запрос на экспорт работ

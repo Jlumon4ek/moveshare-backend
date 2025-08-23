@@ -7,6 +7,7 @@ type User struct {
 	Username       string    `json:"username"`
 	Email          string    `json:"email"`
 	Password       string    `json:"password"`
+	PasswordHash   string    `json:"-"`
 	Role           string    `json:"role"`
 	Status         string    `json:"status"`
 	ProfilePhotoID *string   `json:"profile_photo_id" db:"profile_photo_id"`

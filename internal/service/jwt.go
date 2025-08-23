@@ -11,14 +11,16 @@ import (
 )
 
 type TokenClaims struct {
-	UserID   int64  `json:"user_id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Role     string `json:"role"`
+	UserID    int64  `json:"user_id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Role      string `json:"role"`
+	SessionID int64  `json:"session_id"`
 }
 
 type JWTAuth interface {
-	GenerateAccessToken(userID int64, username, email, role string) (string, error)
+	GenerateAccessToken(userID int64, username, email, role string, sessionID int64) (string, error)
+	GenerateAccessTokenWithoutSession(userID int64, username, email, role string) (string, error)
 	GenerateRefreshToken(userID int64) (string, error)
 	ValidateToken(tokenString string) (int64, error)
 	ValidateTokenAndExtractClaims(tokenString string) (*TokenClaims, error)
@@ -57,7 +59,22 @@ func NewJWTAuth(privateKeyPath, publicKeyPath string) (JWTAuth, error) {
 	}, nil
 }
 
-func (j *jwtAuth) GenerateAccessToken(userID int64, username, email, role string) (string, error) {
+func (j *jwtAuth) GenerateAccessToken(userID int64, username, email, role string, sessionID int64) (string, error) {
+	claims := jwt.MapClaims{
+		"sub":        userID,
+		"username":   username,
+		"email":      email,
+		"role":       role,
+		"session_id": sessionID,
+		"exp":        time.Now().Add(500 * time.Minute).Unix(),
+		"iat":        time.Now().Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	return token.SignedString(j.privateKey)
+}
+
+func (j *jwtAuth) GenerateAccessTokenWithoutSession(userID int64, username, email, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":      userID,
 		"username": username,
@@ -132,12 +149,14 @@ func (j *jwtAuth) ValidateTokenAndExtractClaims(tokenString string) (*TokenClaim
 		username, _ := claims["username"].(string)
 		email, _ := claims["email"].(string)
 		role, _ := claims["role"].(string)
+		sessionID, _ := claims["session_id"].(float64)
 
 		tokenClaims := &TokenClaims{
-			UserID:   int64(userID),
-			Username: username,
-			Email:    email,
-			Role:     role,
+			UserID:    int64(userID),
+			Username:  username,
+			Email:     email,
+			Role:      role,
+			SessionID: int64(sessionID), // Will be 0 for tokens without session_id
 		}
 
 		log.Printf("Token validated successfully for user ID: %d, role: %s", int64(userID), role)

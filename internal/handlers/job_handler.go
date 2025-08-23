@@ -23,15 +23,17 @@ type JobHandler struct {
 	notificationService service.NotificationService
 	minioRepo           *repository.Repository
 	paymentService      service.PaymentService
+	adminService        service.AdminService
 }
 
-func NewJobHandler(jobService *service.JobService, chatService service.ChatService, notificationService service.NotificationService, minioRepo *repository.Repository, paymentService service.PaymentService) *JobHandler {
+func NewJobHandler(jobService *service.JobService, chatService service.ChatService, notificationService service.NotificationService, minioRepo *repository.Repository, paymentService service.PaymentService, adminService service.AdminService) *JobHandler {
 	return &JobHandler{
 		jobService:          jobService,
 		chatService:         chatService,
 		notificationService: notificationService,
 		minioRepo:           minioRepo,
 		paymentService:      paymentService,
+		adminService:        adminService,
 	}
 }
 
@@ -362,10 +364,21 @@ func (h *JobHandler) GetAvailableJobs(c *gin.Context) {
 		return
 	}
 
+	// Get commission rate from system settings
+	settings, err := h.adminService.GetSystemSettings(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to get system settings",
+			"details": err.Error(),
+		})
+		return
+	}
+
 	totalPages := (total + filters.Limit - 1) / filters.Limit
 
 	response := gin.H{
 		"jobs": jobs,
+		"commission_rate": settings.CommissionRate,
 		"pagination": gin.H{
 			"page":        filters.Page,
 			"limit":       filters.Limit,

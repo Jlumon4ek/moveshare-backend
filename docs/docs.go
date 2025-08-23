@@ -15,6 +15,58 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/analytics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Gets platform analytics including top companies and busiest routes",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get platform analytics",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Number of days to look back",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlatformAnalytics"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/admin/conversations/count": {
             "get": {
                 "security": [
@@ -139,6 +191,95 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": {
                                 "type": "integer"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/settings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Gets the current system settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get system settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SystemSettings"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates the system settings",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update system settings",
+                "parameters": [
+                    {
+                        "description": "System settings",
+                        "name": "settings",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SystemSettings"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SystemSettings"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
@@ -452,6 +593,112 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {}
+            }
+        },
+        "/auth/change-password": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Change the password for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Change user password",
+                "parameters": [
+                    {
+                        "description": "Change password request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.ChangePasswordResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Current password is incorrect",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Terminates the current user session",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout user",
+                "responses": {
+                    "200": {
+                        "description": "success message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
             }
         },
         "/auth/refresh-token": {
@@ -1002,6 +1249,39 @@ const docTemplate = `{
                 "responses": {}
             }
         },
+        "/commission-rate": {
+            "get": {
+                "description": "Gets the current platform commission rate that users can see",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Get platform commission rate",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "number",
+                                "format": "float64"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/company/": {
             "get": {
                 "security": [
@@ -1236,6 +1516,73 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/cancel-jobs": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancels multiple jobs by changing their status to 'cancelled'",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Jobs"
+                ],
+                "summary": "Cancel multiple jobs",
+                "parameters": [
+                    {
+                        "description": "Job IDs to cancel",
+                        "name": "cancel",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CancelJobsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Jobs cancelled successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -1746,7 +2093,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a new job posting for moving services",
+                "description": "Creates a new job posting for moving services with required payment processing",
                 "consumes": [
                     "application/json"
                 ],
@@ -1756,21 +2103,21 @@ const docTemplate = `{
                 "tags": [
                     "Jobs"
                 ],
-                "summary": "Create a new job",
+                "summary": "Create a new job with payment",
                 "parameters": [
                     {
-                        "description": "Job creation data",
+                        "description": "Job creation data with payment",
                         "name": "job",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateJobRequest"
+                            "$ref": "#/definitions/models.CreateJobWithPaymentRequest"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Job created successfully",
+                        "description": "Job created successfully with payment processed",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1787,6 +2134,15 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "402": {
+                        "description": "Payment required",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3601,6 +3957,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/reviews/job/{id}/check": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Check if the current user has already submitted a review for the specified job",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "Check if review exists for job",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Review existence check result",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/reviews/stats/{id}": {
             "get": {
                 "description": "Retrieves detailed rating statistics for a specific user",
@@ -3926,6 +4347,86 @@ const docTemplate = `{
                 "responses": {}
             }
         },
+        "/user/active-sessions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all active sessions for the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Session"
+                ],
+                "summary": "Get user's active sessions",
+                "responses": {
+                    "200": {
+                        "description": "active sessions",
+                        "schema": {
+                            "$ref": "#/definitions/models.ActiveSessionsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/my-profile": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the profile information of the currently authenticated user including updated_at",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get current user profile",
+                "responses": {
+                    "200": {
+                        "description": "user profile",
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/user/my-status": {
             "get": {
                 "security": [
@@ -4087,6 +4588,101 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/user/sessions/terminate-all": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Terminates all user sessions except the current one",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Session"
+                ],
+                "summary": "Terminate all sessions except current",
+                "responses": {
+                    "200": {
+                        "description": "success message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/sessions/{session_id}/terminate": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Terminates a specific session by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Session"
+                ],
+                "summary": "Terminate a specific session",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Session ID",
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     }
                 }
@@ -4275,6 +4871,30 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "auth.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "current_password",
+                "new_password"
+            ],
+            "properties": {
+                "current_password": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string",
+                    "minLength": 8
+                }
+            }
+        },
+        "auth.ChangePasswordResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "chat.CreateChatRequest": {
             "type": "object",
             "required": [
@@ -4427,6 +5047,20 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ActiveSessionsResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserSessionResponse"
+                    }
+                }
+            }
+        },
         "models.AddCardRequest": {
             "type": "object",
             "required": [
@@ -4450,6 +5084,38 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "models.BusyRoute": {
+            "type": "object",
+            "properties": {
+                "delivery_address": {
+                    "type": "string"
+                },
+                "jobs_count": {
+                    "type": "integer"
+                },
+                "pickup_address": {
+                    "type": "string"
+                },
+                "route": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.CancelJobsRequest": {
+            "type": "object",
+            "required": [
+                "job_ids"
+            ],
+            "properties": {
+                "job_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },
@@ -4584,17 +5250,21 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateJobRequest": {
+        "models.CreateJobWithPaymentRequest": {
             "type": "object",
             "required": [
                 "delivery_address",
+                "delivery_city",
                 "delivery_date",
+                "delivery_state",
                 "delivery_time_from",
                 "delivery_time_to",
                 "job_type",
                 "payment_amount",
                 "pickup_address",
+                "pickup_city",
                 "pickup_date",
+                "pickup_state",
                 "pickup_time_from",
                 "pickup_time_to",
                 "truck_size"
@@ -4607,7 +5277,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "cut_amount": {
-                    "description": "\u003c- ДОБАВЬ ЭТО",
                     "type": "number"
                 },
                 "delivery_address": {
@@ -4616,11 +5285,17 @@ const docTemplate = `{
                 "delivery_building_type": {
                     "type": "string"
                 },
+                "delivery_city": {
+                    "type": "string"
+                },
                 "delivery_date": {
                     "type": "string"
                 },
                 "delivery_floor": {
                     "type": "integer"
+                },
+                "delivery_state": {
+                    "type": "string"
                 },
                 "delivery_time_from": {
                     "type": "string"
@@ -4644,6 +5319,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "job_type": {
+                    "description": "Job details",
                     "type": "string"
                 },
                 "number_of_bedrooms": {
@@ -4655,10 +5331,17 @@ const docTemplate = `{
                 "payment_amount": {
                     "type": "number"
                 },
+                "payment_method_id": {
+                    "description": "Payment information",
+                    "type": "integer"
+                },
                 "pickup_address": {
                     "type": "string"
                 },
                 "pickup_building_type": {
+                    "type": "string"
+                },
+                "pickup_city": {
                     "type": "string"
                 },
                 "pickup_date": {
@@ -4666,6 +5349,9 @@ const docTemplate = `{
                 },
                 "pickup_floor": {
                     "type": "integer"
+                },
+                "pickup_state": {
+                    "type": "string"
                 },
                 "pickup_time_from": {
                     "type": "string"
@@ -4690,8 +5376,7 @@ const docTemplate = `{
         "models.CreatePaymentRequest": {
             "type": "object",
             "required": [
-                "amount_cents",
-                "job_id"
+                "amount_cents"
             ],
             "properties": {
                 "amount_cents": {
@@ -4704,6 +5389,7 @@ const docTemplate = `{
                     "example": "Payment for job posting"
                 },
                 "job_id": {
+                    "description": "Опционально для отдельных платежей",
                     "type": "integer",
                     "example": 123
                 },
@@ -4751,6 +5437,15 @@ const docTemplate = `{
                     "type": "integer",
                     "maximum": 5,
                     "minimum": 1
+                }
+            }
+        },
+        "models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Invalid request"
                 }
             }
         },
@@ -4825,11 +5520,17 @@ const docTemplate = `{
                 "delivery_building_type": {
                     "type": "string"
                 },
+                "delivery_city": {
+                    "type": "string"
+                },
                 "delivery_date": {
                     "type": "string"
                 },
                 "delivery_floor": {
                     "type": "integer"
+                },
+                "delivery_state": {
+                    "type": "string"
                 },
                 "delivery_time_from": {
                     "type": "string"
@@ -4850,6 +5551,16 @@ const docTemplate = `{
                 },
                 "executor_id": {
                     "type": "integer"
+                },
+                "executor_name": {
+                    "type": "string"
+                },
+                "executor_rating": {
+                    "type": "number"
+                },
+                "executor_username": {
+                    "description": "Executor info (only for detailed job view)",
+                    "type": "string"
                 },
                 "files": {
                     "description": "Files",
@@ -4891,12 +5602,18 @@ const docTemplate = `{
                 "pickup_building_type": {
                     "type": "string"
                 },
+                "pickup_city": {
+                    "type": "string"
+                },
                 "pickup_date": {
                     "description": "Schedule",
                     "type": "string"
                 },
                 "pickup_floor": {
                     "type": "integer"
+                },
+                "pickup_state": {
+                    "type": "string"
                 },
                 "pickup_time_from": {
                     "type": "string"
@@ -4971,13 +5688,14 @@ const docTemplate = `{
                         }
                     }
                 },
-                "max_distance_available": {
-                    "type": "object",
-                    "properties": {
-                        "max": {
-                            "type": "number"
-                        }
+                "delivery_locations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.LocationOption"
                     }
+                },
+                "max_distance": {
+                    "type": "number"
                 },
                 "number_of_bedrooms": {
                     "type": "array",
@@ -4994,6 +5712,12 @@ const docTemplate = `{
                         "min": {
                             "type": "number"
                         }
+                    }
+                },
+                "pickup_locations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.LocationOption"
                     }
                 },
                 "truck_sizes": {
@@ -5044,6 +5768,17 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "models.LocationOption": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
                 }
             }
         },
@@ -5354,6 +6089,23 @@ const docTemplate = `{
                 }
             }
         },
+        "models.PlatformAnalytics": {
+            "type": "object",
+            "properties": {
+                "busiest_routes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.BusyRoute"
+                    }
+                },
+                "top_companies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.TopCompany"
+                    }
+                }
+            }
+        },
         "models.ResetPasswordRequest": {
             "type": "object",
             "required": [
@@ -5452,6 +6204,37 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "models.SystemSettings": {
+            "type": "object",
+            "properties": {
+                "commission_rate": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "job_expiration_days": {
+                    "type": "integer"
+                },
+                "minimum_payout": {
+                    "type": "integer"
+                },
+                "new_user_approval": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.TopCompany": {
+            "type": "object",
+            "properties": {
+                "company_name": {
+                    "type": "string"
+                },
+                "jobs_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -5662,6 +6445,34 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.UserSessionResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "device_info": {
+                    "description": "Formatted as \"Browser on OS\"",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "is_current": {
+                    "type": "boolean"
+                },
+                "last_activity": {
+                    "type": "string"
+                },
+                "location_info": {
+                    "description": "Formatted as \"City, Region\"",
+                    "type": "string"
                 }
             }
         },

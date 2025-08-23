@@ -46,7 +46,7 @@ func RefreshToken(userService service.UserService, jwtAuth service.JWTAuth) gin.
 			return
 		}
 
-		accessToken, err := jwtAuth.GenerateAccessToken(userID, userInfo.Username, userInfo.Email, userInfo.Role)
+		accessToken, err := jwtAuth.GenerateAccessTokenWithoutSession(userID, userInfo.Username, userInfo.Email, userInfo.Role)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
 			return

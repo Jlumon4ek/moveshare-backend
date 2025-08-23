@@ -4,6 +4,8 @@ import (
 	"context"
 	"moveshare/internal/models"
 	"moveshare/internal/repository/user"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService interface {
@@ -12,6 +14,8 @@ type UserService interface {
 	FindUserByID(ctx context.Context, userID int64) (*models.User, error)
 	GetUserByID(userID int64) (*models.User, error)
 	UpdateProfilePhotoID(userID int64, photoID string) error
+	CheckPassword(password, hash string) bool
+	UpdatePassword(userID int64, newPassword string) error
 }
 
 type userService struct {
@@ -49,4 +53,20 @@ func (s *userService) GetUserByID(userID int64) (*models.User, error) {
 func (s *userService) UpdateProfilePhotoID(userID int64, photoID string) error {
 	ctx := context.Background()
 	return s.userRepo.UpdateProfilePhotoID(ctx, userID, photoID)
+}
+
+func (s *userService) CheckPassword(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
+func (s *userService) UpdatePassword(userID int64, newPassword string) error {
+	ctx := context.Background()
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	return s.userRepo.UpdatePassword(ctx, userID, string(hashedPassword))
 }

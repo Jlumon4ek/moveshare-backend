@@ -355,7 +355,7 @@ func (r *JobRepository) GetAvailableJobs(ctx context.Context, userID int64, filt
 	baseQuery := `
 		SELECT id, job_type, distance_miles, pickup_address, pickup_city, pickup_state, delivery_address, delivery_city, delivery_state,
 			   pickup_date, delivery_date, truck_size, weight_lbs, volume_cu_ft, payment_amount,
-			   contractor_id, number_of_bedrooms
+			   contractor_id, number_of_bedrooms, cut_amount
 		FROM jobs 
 		WHERE contractor_id != $1 AND job_status = 'active' AND executor_id IS NULL
 	`
@@ -511,7 +511,7 @@ func (r *JobRepository) GetAvailableJobs(ctx context.Context, userID int64, filt
 			&job.ID, &job.JobType, &job.DistanceMiles, &job.PickupAddress, &job.PickupCity, &job.PickupState,
 			&job.DeliveryAddress, &job.DeliveryCity, &job.DeliveryState, &job.PickupDate, &job.DeliveryDate, &job.TruckSize,
 			&job.WeightLbs, &job.VolumeCuFt, &job.PaymentAmount,
-			&job.ContractorID, &job.NumberOfBedrooms,
+			&job.ContractorID, &job.NumberOfBedrooms, &job.CutAmount,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan job: %w", err)

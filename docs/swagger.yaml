@@ -1,5 +1,21 @@
 basePath: /api
 definitions:
+  auth.ChangePasswordRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        minLength: 8
+        type: string
+    required:
+    - current_password
+    - new_password
+    type: object
+  auth.ChangePasswordResponse:
+    properties:
+      message:
+        type: string
+    type: object
   chat.CreateChatRequest:
     properties:
       job_id:
@@ -108,6 +124,15 @@ definitions:
         example: "90001"
         type: string
     type: object
+  models.ActiveSessionsResponse:
+    properties:
+      count:
+        type: integer
+      sessions:
+        items:
+          $ref: '#/definitions/models.UserSessionResponse'
+        type: array
+    type: object
   models.AddCardRequest:
     properties:
       payment_method_id:
@@ -124,6 +149,27 @@ definitions:
         $ref: '#/definitions/models.PaymentMethodResponse'
       success:
         type: boolean
+    type: object
+  models.BusyRoute:
+    properties:
+      delivery_address:
+        type: string
+      jobs_count:
+        type: integer
+      pickup_address:
+        type: string
+      route:
+        type: string
+    type: object
+  models.CancelJobsRequest:
+    properties:
+      job_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - job_ids
     type: object
   models.ChatMessageResponse:
     properties:
@@ -211,23 +257,26 @@ definitions:
       success:
         type: boolean
     type: object
-  models.CreateJobRequest:
+  models.CreateJobWithPaymentRequest:
     properties:
       additional_services_description:
         type: string
       bulky_items:
         type: boolean
       cut_amount:
-        description: <- ДОБАВЬ ЭТО
         type: number
       delivery_address:
         type: string
       delivery_building_type:
         type: string
+      delivery_city:
+        type: string
       delivery_date:
         type: string
       delivery_floor:
         type: integer
+      delivery_state:
+        type: string
       delivery_time_from:
         type: string
       delivery_time_to:
@@ -243,6 +292,7 @@ definitions:
       inventory_list:
         type: boolean
       job_type:
+        description: Job details
         type: string
       number_of_bedrooms:
         type: string
@@ -250,14 +300,21 @@ definitions:
         type: boolean
       payment_amount:
         type: number
+      payment_method_id:
+        description: Payment information
+        type: integer
       pickup_address:
         type: string
       pickup_building_type:
+        type: string
+      pickup_city:
         type: string
       pickup_date:
         type: string
       pickup_floor:
         type: integer
+      pickup_state:
+        type: string
       pickup_time_from:
         type: string
       pickup_time_to:
@@ -272,13 +329,17 @@ definitions:
         type: number
     required:
     - delivery_address
+    - delivery_city
     - delivery_date
+    - delivery_state
     - delivery_time_from
     - delivery_time_to
     - job_type
     - payment_amount
     - pickup_address
+    - pickup_city
     - pickup_date
+    - pickup_state
     - pickup_time_from
     - pickup_time_to
     - truck_size
@@ -293,6 +354,7 @@ definitions:
         example: Payment for job posting
         type: string
       job_id:
+        description: Опционально для отдельных платежей
         example: 123
         type: integer
       payment_method_id:
@@ -301,7 +363,6 @@ definitions:
         type: integer
     required:
     - amount_cents
-    - job_id
     type: object
   models.CreatePaymentResponse:
     properties:
@@ -329,6 +390,12 @@ definitions:
     required:
     - job_id
     - rating
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        example: Invalid request
+        type: string
     type: object
   models.ExportJobsRequest:
     properties:
@@ -378,10 +445,14 @@ definitions:
         type: string
       delivery_building_type:
         type: string
+      delivery_city:
+        type: string
       delivery_date:
         type: string
       delivery_floor:
         type: integer
+      delivery_state:
+        type: string
       delivery_time_from:
         type: string
       delivery_time_to:
@@ -396,6 +467,13 @@ definitions:
         type: string
       executor_id:
         type: integer
+      executor_name:
+        type: string
+      executor_rating:
+        type: number
+      executor_username:
+        description: Executor info (only for detailed job view)
+        type: string
       files:
         description: Files
         items:
@@ -424,11 +502,15 @@ definitions:
         type: string
       pickup_building_type:
         type: string
+      pickup_city:
+        type: string
       pickup_date:
         description: Schedule
         type: string
       pickup_floor:
         type: integer
+      pickup_state:
+        type: string
       pickup_time_from:
         type: string
       pickup_time_to:
@@ -478,11 +560,12 @@ definitions:
             description: YYYY-MM-DD
             type: string
         type: object
-      max_distance_available:
-        properties:
-          max:
-            type: number
-        type: object
+      delivery_locations:
+        items:
+          $ref: '#/definitions/models.LocationOption'
+        type: array
+      max_distance:
+        type: number
       number_of_bedrooms:
         items:
           type: string
@@ -494,6 +577,10 @@ definitions:
           min:
             type: number
         type: object
+      pickup_locations:
+        items:
+          $ref: '#/definitions/models.LocationOption'
+        type: array
       truck_sizes:
         items:
           type: string
@@ -526,6 +613,13 @@ definitions:
         additionalProperties:
           type: integer
         type: object
+    type: object
+  models.LocationOption:
+    properties:
+      label:
+        type: string
+      value:
+        type: string
     type: object
   models.Notification:
     properties:
@@ -744,6 +838,17 @@ definitions:
       is_default:
         type: boolean
     type: object
+  models.PlatformAnalytics:
+    properties:
+      busiest_routes:
+        items:
+          $ref: '#/definitions/models.BusyRoute'
+        type: array
+      top_companies:
+        items:
+          $ref: '#/definitions/models.TopCompany'
+        type: array
+    type: object
   models.ResetPasswordRequest:
     properties:
       code:
@@ -812,6 +917,26 @@ definitions:
         type: integer
       name:
         type: string
+    type: object
+  models.SystemSettings:
+    properties:
+      commission_rate:
+        type: number
+      id:
+        type: integer
+      job_expiration_days:
+        type: integer
+      minimum_payout:
+        type: integer
+      new_user_approval:
+        type: string
+    type: object
+  models.TopCompany:
+    properties:
+      company_name:
+        type: string
+      jobs_count:
+        type: integer
     type: object
   models.TruckSwagger:
     properties:
@@ -951,6 +1076,25 @@ definitions:
       user_id:
         type: integer
     type: object
+  models.UserSessionResponse:
+    properties:
+      created_at:
+        type: string
+      device_info:
+        description: Formatted as "Browser on OS"
+        type: string
+      id:
+        type: integer
+      ip_address:
+        type: string
+      is_current:
+        type: boolean
+      last_activity:
+        type: string
+      location_info:
+        description: Formatted as "City, Region"
+        type: string
+    type: object
   models.UserWorkStats:
     properties:
       completed_jobs:
@@ -1001,6 +1145,39 @@ info:
   title: MoveShare API
   version: "1.0"
 paths:
+  /admin/analytics:
+    get:
+      description: Gets platform analytics including top companies and busiest routes
+      parameters:
+      - default: 30
+        description: Number of days to look back
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.PlatformAnalytics'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get platform analytics
+      tags:
+      - Admin
   /admin/conversations/count:
     get:
       description: Gets the total number of chat conversations in the system
@@ -1089,6 +1266,62 @@ paths:
       security:
       - BearerAuth: []
       summary: Get active jobs count
+      tags:
+      - Admin
+  /admin/settings:
+    get:
+      description: Gets the current system settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SystemSettings'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get system settings
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      description: Updates the system settings
+      parameters:
+      - description: System settings
+        in: body
+        name: settings
+        required: true
+        schema:
+          $ref: '#/definitions/models.SystemSettings'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SystemSettings'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update system settings
       tags:
       - Admin
   /admin/user/{userID}/full-info:
@@ -1285,6 +1518,73 @@ paths:
       summary: Изменить статус файла верификации
       tags:
       - Admin
+  /auth/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change the password for the authenticated user
+      parameters:
+      - description: Change password request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.ChangePasswordResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Current password is incorrect
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Change user password
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Terminates the current user session
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - Auth
   /auth/refresh-token:
     post:
       consumes:
@@ -1648,6 +1948,28 @@ paths:
       summary: WebSocket connection for chat
       tags:
       - Chat
+  /commission-rate:
+    get:
+      description: Gets the current platform commission rate that users can see
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              format: float64
+              type: number
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get platform commission rate
+      tags:
+      - System
   /company/:
     get:
       description: Возвращает компанию, связанную с текущим пользователем
@@ -1929,6 +2251,49 @@ paths:
       security:
       - BearerAuth: []
       summary: Get available jobs
+      tags:
+      - Jobs
+  /jobs/cancel-jobs:
+    post:
+      consumes:
+      - application/json
+      description: Cancels multiple jobs by changing their status to 'cancelled'
+      parameters:
+      - description: Job IDs to cancel
+        in: body
+        name: cancel
+        required: true
+        schema:
+          $ref: '#/definitions/models.CancelJobsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Jobs cancelled successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Cancel multiple jobs
       tags:
       - Jobs
   /jobs/claim-job/{id}:
@@ -2257,19 +2622,20 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new job posting for moving services
+      description: Creates a new job posting for moving services with required payment
+        processing
       parameters:
-      - description: Job creation data
+      - description: Job creation data with payment
         in: body
         name: job
         required: true
         schema:
-          $ref: '#/definitions/models.CreateJobRequest'
+          $ref: '#/definitions/models.CreateJobWithPaymentRequest'
       produces:
       - application/json
       responses:
         "201":
-          description: Job created successfully
+          description: Job created successfully with payment processed
           schema:
             additionalProperties: true
             type: object
@@ -2285,6 +2651,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "402":
+          description: Payment required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal server error
           schema:
@@ -2293,7 +2665,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Create a new job
+      summary: Create a new job with payment
       tags:
       - Jobs
   /jobs/stats:
@@ -3344,6 +3716,49 @@ paths:
       summary: Get user average rating
       tags:
       - Reviews
+  /reviews/job/{id}/check:
+    get:
+      consumes:
+      - application/json
+      description: Check if the current user has already submitted a review for the
+        specified job
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Review existence check result
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check if review exists for job
+      tags:
+      - Reviews
   /reviews/stats/{id}:
     get:
       consumes:
@@ -3563,6 +3978,57 @@ paths:
       summary: Get truck by ID
       tags:
       - Trucks
+  /user/active-sessions:
+    get:
+      description: Returns all active sessions for the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: active sessions
+          schema:
+            $ref: '#/definitions/models.ActiveSessionsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user's active sessions
+      tags:
+      - Session
+  /user/my-profile:
+    get:
+      description: Returns the profile information of the currently authenticated
+        user including updated_at
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user profile
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - User
   /user/my-status:
     get:
       description: Returns the status of the currently authenticated user
@@ -3670,6 +4136,66 @@ paths:
       summary: Get user profile photo
       tags:
       - User
+  /user/sessions/{session_id}/terminate:
+    delete:
+      description: Terminates a specific session by ID
+      parameters:
+      - description: Session ID
+        in: path
+        name: session_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Terminate a specific session
+      tags:
+      - Session
+  /user/sessions/terminate-all:
+    delete:
+      description: Terminates all user sessions except the current one
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Terminate all sessions except current
+      tags:
+      - Session
   /user/upload-profile-photo:
     post:
       consumes:
