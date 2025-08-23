@@ -10,11 +10,11 @@ import (
 
 // SignUp handles user registration
 // @Summary Register a new user
-// @Description Creates a new user account with username, email and password
+// @Description Creates a new user account with username, email, password and email verification code
 // @Tags Auth
 // @Param request body models.SignUpRequest true "User registration data"
 // @Router /auth/sign-up [post]
-func SignUp(userService service.UserService) gin.HandlerFunc {
+func SignUp(userService service.UserService, emailVerificationService service.EmailVerificationService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req models.SignUpRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -22,8 +22,15 @@ func SignUp(userService service.UserService) gin.HandlerFunc {
 			return
 		}
 
-		if req.Username == "" || req.Email == "" || req.Password == "" {
-			c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Username, email and password are required"})
+		if req.Username == "" || req.Email == "" || req.Password == "" || req.VerificationCode == "" {
+			c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Username, email, password and verification code are required"})
+			return
+		}
+
+		// Verify email verification code first
+		err := emailVerificationService.VerifyEmailCode(c.Request.Context(), req.Email, req.VerificationCode)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Invalid or expired verification code"})
 			return
 		}
 

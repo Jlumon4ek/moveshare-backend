@@ -58,7 +58,7 @@ func ChangePassword(userService service.UserService) gin.HandlerFunc {
 			return
 		}
 
-		if !userService.CheckPassword(request.CurrentPassword, user.PasswordHash) {
+		if !userService.CheckPassword(request.CurrentPassword, user.Password) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Current password is incorrect"})
 			return
 		}

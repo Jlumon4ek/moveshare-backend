@@ -19,6 +19,7 @@ import (
 	"moveshare/internal/repository/truck"
 	"moveshare/internal/repository/user"
 	"moveshare/internal/repository/verification"
+	"moveshare/internal/repository/email_verification"
 	"moveshare/internal/websocket"
 	"strings"
 
@@ -95,6 +96,10 @@ func main() {
 	passwordResetRepo := password_reset.NewPasswordResetRepository(db)
 	emailService := service.NewEmailService()
 	passwordResetService := service.NewPasswordResetService(passwordResetRepo, emailService)
+
+	// Email verification services
+	emailVerificationRepo := email_verification.NewEmailVerificationRepository(db)
+	emailVerificationService := service.NewEmailVerificationService(emailVerificationRepo, emailService)
 
 	r := gin.Default()
 
@@ -183,7 +188,7 @@ func main() {
 	apiGroup := r.Group("/api")
 	{
 		router.AdminRouter(apiGroup, jwtAuth, adminService)
-		router.UserRouter(apiGroup, userService, minioService, jwtAuth, passwordResetService, sessionService)
+		router.UserRouter(apiGroup, userService, minioService, jwtAuth, passwordResetService, sessionService, emailVerificationService)
 		router.CompanyRouter(apiGroup, companyService, jwtAuth)
 		router.TruckRouter(apiGroup, truckService, jwtAuth)
 		router.VerificationRouter(apiGroup, verificationService, jwtAuth)

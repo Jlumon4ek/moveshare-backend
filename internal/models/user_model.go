@@ -16,9 +16,10 @@ type User struct {
 }
 
 type SignUpRequest struct {
-	Username string `json:"username" example:"Sabalaq"`
-	Email    string `json:"email" example:"zhanseriknurym@gmail.com"`
-	Password string `json:"password" example:"Lineage6_"`
+	Username         string `json:"username" example:"Sabalaq"`
+	Email            string `json:"email" example:"zhanseriknurym@gmail.com"`
+	Password         string `json:"password" example:"Lineage6_"`
+	VerificationCode string `json:"verification_code" example:"123456"`
 }
 
 type SignUpResponse struct {

@@ -10,16 +10,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func UserRouter(r gin.IRouter, userService service.UserService, minioService *service.MinioService, jwtAuth service.JWTAuth, passwordResetService service.PasswordResetService, sessionService service.SessionService) {
+func UserRouter(r gin.IRouter, userService service.UserService, minioService *service.MinioService, jwtAuth service.JWTAuth, passwordResetService service.PasswordResetService, sessionService service.SessionService, emailVerificationService service.EmailVerificationService) {
 	authGroup := r.Group("/auth")
 	{
 		authGroup.POST("/refresh-token", user.RefreshToken(userService, jwtAuth))
-		authGroup.POST("/sign-up", user.SignUp(userService))
+		authGroup.POST("/send-verification-code", auth.SendVerificationCode(emailVerificationService))
+		authGroup.POST("/verify-email-code", auth.VerifyEmailCode(emailVerificationService))
+		authGroup.POST("/sign-up", user.SignUp(userService, emailVerificationService))
 		authGroup.POST("/sign-in", user.SignIn(userService, jwtAuth, sessionService))
-		// Logout requires authentication
-		authGroup.Use(middleware.AuthMiddleware(jwtAuth))
-		authGroup.Use(middleware.SessionValidationMiddleware(sessionService))
-		authGroup.POST("/logout", auth.Logout(sessionService))
+	}
+
+	// Authenticated auth routes
+	authProtected := r.Group("/auth")
+	authProtected.Use(middleware.AuthMiddleware(jwtAuth))
+	authProtected.Use(middleware.SessionValidationMiddleware(sessionService))
+	{
+		authProtected.POST("/logout", auth.Logout(sessionService))
+		authProtected.POST("/change-password", auth.ChangePassword(userService))
 	}
 
 	// Password reset routes (public)
@@ -37,7 +44,6 @@ func UserRouter(r gin.IRouter, userService service.UserService, minioService *se
 		userGroup.POST("/upload-profile-photo", profilePhotoHandler.UploadProfilePhoto)
 		userGroup.GET("/profile-photo/:user_id", profilePhotoHandler.GetProfilePhoto)
 		userGroup.DELETE("/profile-photo", profilePhotoHandler.DeleteProfilePhoto)
-		userGroup.POST("/change-password", auth.ChangePassword(userService))
 
 		// Session management routes
 		userGroup.GET("/active-sessions", session.GetActiveSessions(sessionService))

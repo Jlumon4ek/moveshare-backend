@@ -9,6 +9,7 @@ import (
 
 type EmailService interface {
 	SendPasswordResetCode(to, code string) error
+	SendEmail(to, subject, body string) error
 }
 
 type emailService struct {
@@ -119,6 +120,22 @@ The MoveShare Team`, code)
 		Subject: subject,
 		Text:    text,
 		Html:    html,
+	}
+
+	_, err := e.client.Emails.Send(params)
+	if err != nil {
+		return fmt.Errorf("failed to send email via Resend: %w", err)
+	}
+
+	return nil
+}
+
+func (e *emailService) SendEmail(to, subject, body string) error {
+	params := &resend.SendEmailRequest{
+		From:    e.from,
+		To:      []string{to},
+		Subject: subject,
+		Html:    body,
 	}
 
 	_, err := e.client.Emails.Send(params)
