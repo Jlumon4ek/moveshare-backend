@@ -16,7 +16,7 @@ func UserRouter(r gin.IRouter, userService service.UserService, minioService *se
 		authGroup.POST("/refresh-token", user.RefreshToken(userService, jwtAuth))
 		authGroup.POST("/send-verification-code", auth.SendVerificationCode(emailVerificationService))
 		authGroup.POST("/verify-email-code", auth.VerifyEmailCode(emailVerificationService))
-		authGroup.POST("/sign-up", user.SignUp(userService, emailVerificationService))
+		authGroup.POST("/sign-up", user.SignUp(userService, emailVerificationService, jwtAuth, sessionService))
 		authGroup.POST("/sign-in", user.SignIn(userService, jwtAuth, sessionService))
 	}
 

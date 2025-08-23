@@ -3,6 +3,7 @@ package user
 import (
 	"moveshare/internal/models"
 	"moveshare/internal/service"
+	"moveshare/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,7 @@ import (
 // @Tags Auth
 // @Param request body models.SignUpRequest true "User registration data"
 // @Router /auth/sign-up [post]
-func SignUp(userService service.UserService, emailVerificationService service.EmailVerificationService) gin.HandlerFunc {
+func SignUp(userService service.UserService, emailVerificationService service.EmailVerificationService, jwtAuth service.JWTAuth, sessionService service.SessionService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req models.SignUpRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -57,6 +58,51 @@ func SignUp(userService service.UserService, emailVerificationService service.Em
 			return
 		}
 
-		c.JSON(http.StatusCreated, models.SignUpResponse{Message: "User created successfully"})
+		// Create session record first
+		userAgent := c.GetHeader("User-Agent")
+		clientIP := utils.GetClientIP(c.Request)
+		deviceInfo := utils.ParseUserAgent(userAgent)
+		locationInfo := utils.GetLocationInfo(clientIP)
+
+		sessionRequest := &models.CreateSessionRequest{
+			UserAgent:    userAgent,
+			IPAddress:    clientIP,
+			DeviceInfo:   deviceInfo,
+			LocationInfo: locationInfo,
+		}
+
+		// Create session with temporary tokens
+		session, err := sessionService.CreateSession(c.Request.Context(), sessionRequest, user.ID, "temp", "temp")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to create session"})
+			return
+		}
+
+		// Generate tokens with session ID
+		accessToken, err := jwtAuth.GenerateAccessToken(user.ID, user.Username, user.Email, user.Role, session.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to generate access token"})
+			return
+		}
+
+		refreshToken, err := jwtAuth.GenerateRefreshToken(user.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to generate refresh token"})
+			return
+		}
+
+		// Update session with actual tokens
+		err = sessionService.UpdateSessionTokens(c.Request.Context(), session.ID, accessToken, refreshToken)
+		if err != nil {
+			// Log error but don't fail the registration process
+		}
+
+		c.JSON(http.StatusCreated, models.SignUpResponse{
+			UserID:       user.ID,
+			Username:     user.Username,
+			Email:        user.Email,
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		})
 	}
 }

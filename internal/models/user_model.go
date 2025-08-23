@@ -23,7 +23,11 @@ type SignUpRequest struct {
 }
 
 type SignUpResponse struct {
-	Message string `json:"message"`
+	UserID       int64  `json:"user_id" example:"1"`
+	Username     string `json:"username" example:"Sabalaq"`
+	Email        string `json:"email" example:"zhanseriknurym@gmail.com"`
+	AccessToken  string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	RefreshToken string `json:"refresh_token" example:"d1f1e1f1e1f1e1f1e1f1e1f1e1f1e1f1"`
 }
 
 type SignInRequest struct {
